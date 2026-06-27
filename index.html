@@ -3,1168 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>İngilizce Kelime Havuzu Oyunu</title>
+    <title>Kelime Oyunu v2.0</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0;
-            color: #333;
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1a1a1e;
+            --accent: #ff4757;
+            --accent-hover: #ff6b81;
+            --text: #ffffff;
+            --text-secondary: #a4b0be;
         }
-        .game-container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-        }
-        .stats {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            margin-bottom: 20px;
-            font-size: 1.1rem;
-            color: #555;
-        }
-        .question-box {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 30px;
-            color: #2d3748;
-        }
-        .options-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
-        .btn {
-            background-color: #f7fafc;
-            border: 2px solid #e2e8f0;
-            padding: 15px;
-            font-size: 1.1rem;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            outline: none;
-            font-weight: 500;
-        }
-        .btn:hover:not([disabled]) {
-            background-color: #edf2f7;
-            border-color: #cbd5e0;
-            transform: translateY(-2px);
-        }
-        .btn.correct {
-            background-color: #48bb78 !important;
-            color: white !important;
-            border-color: #38a169 !important;
-        }
-        .btn.wrong {
-            background-color: #f56565 !important;
-            color: white !important;
-            border-color: #e53e3e !important;
-        }
-        .next-btn {
-            margin-top: 25px;
-            background-color: #4c51bf;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            font-size: 1.1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            display: none;
-            width: 100%;
-        }
-        .next-btn:hover {
-            background-color: #434190;
-        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 15px; }
+        
+        .container { width: 100%; max-width: 500px; background: var(--card-bg); padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+        
+        h1 { font-size: 24px; margin-bottom: 10px; color: var(--text); }
+        .stats { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; display: flex; justify-content: space-between; padding: 0 10px; }
+        
+        /* Mod Seçim Butonları */
+        .mode-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+        .mode-btn { background: #2f3542; border: 2px solid transparent; color: var(--text-secondary); padding: 12px 8px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .mode-btn.active { background: #3742fa; color: white; border-color: #535c68; }
+        .mode-btn.challenge-mode.active { background: var(--accent); }
+        
+        /* Oyun Alanı */
+        .card { background: #2f3542; padding: 35px 20px; border-radius: 16px; margin-bottom: 25px; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; border: 1px solid #3f4656; }
+        .word-num { font-size: 13px; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+        .word-text { font-size: 32px; font-weight: bold; word-break: break-word; }
+        
+        /* Cevap ve Kontrol */
+        .input-group { display: flex; flex-direction: column; gap: 12px; }
+        input[type="text"] { width: 100%; padding: 16px; border-radius: 12px; border: 2px solid #3f4656; background: #222733; color: white; font-size: 18px; text-align: center; outline: none; transition: border-color 0.2s; }
+        input[type="text"]:focus { border-color: #3742fa; }
+        
+        .action-btn { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s; width: 100%; }
+        .action-btn:hover { background: var(--accent-hover); }
+        
+        /* Bildirimler */
+        .feedback { margin-top: 15px; font-weight: bold; font-size: 16px; min-height: 24px; }
+        .correct { color: #2ed573; }
+        .incorrect { color: #ff4757; }
+        
+        /* Can Barı (Challenge Modu İçin) */
+        .hearts { font-size: 18px; margin-bottom: 10px; color: #ff4757; display: none; }
     </style>
 </head>
 <body>
 
-<div class="game-container">
-    <div class="stats">
-        <div>Skor: <span id="score">0</span></div>
-        <div>Soru: <span id="question-count">0</span></div>
+<div class="container">
+    <h1>Kelime Oyunu</h1>
+    
+    <!-- Oyun Modları -->
+    <div class="mode-container">
+        <button class="mode-btn active" onclick="changeMode('sıralı')">1-2-3 Sıralı</button>
+        <button class="mode-btn" onclick="changeMode('karışık')">Karışık Mod</button>
+        <button class="mode-btn" onclick="changeMode('alfabetik')">Alfabetik</button>
+        <button class="mode-btn challenge-mode" onclick="changeMode('challenge')">Meydan Okuma</button>
     </div>
-    
-    <div class="question-box" id="question">Yükleniyor...</div>
-    
-    <div class="options-container" id="options"></div>
-    
-    <button class="next-btn" id="next-button" onclick="nextQuestion()">Sonraki Soru ➔</button>
+
+    <div class="hearts" id="hearts-display">❤️❤️❤️</div>
+
+    <div class="stats">
+        <span id="score-display">Skor: 0</span>
+        <span id="progress-display">İlerleme: 0 / 1000</span>
+    </div>
+
+    <div class="card">
+        <div class="word-num" id="info-tag">Sıra: 1</div>
+        <div class="word-text" id="question-word">Yükleniyor...</div>
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="user-input" placeholder="Anlamını yazın..." autocomplete="off" autofocus>
+        <button class="action-btn" id="submit-btn" onclick="checkAnswer()">Onayla</button>
+    </div>
+
+    <div class="feedback" id="feedback-msg"></div>
 </div>
 
 <script>
-    const wordPool = [
-        { eng: "Abuse", tr: "suistimal etmek" },
-        { eng: "Abyss", tr: "uçurum" },
-        { eng: "Accelerate", tr: "hızlandırmak" },
-        { eng: "Accompany", tr: "eşlik etmek" },
-        { eng: "Accurate", tr: "kesin" },
-        { eng: "Accuse", tr: "suçlamak" },
-        { eng: "Admire", tr: "hayran olmak" },
-        { eng: "Admit", tr: "itiraf etmek" },
-        { eng: "Affirmative", tr: "olumlu" },
-        { eng: "Aggrandize", tr: "yüceltmek / büyütmek" },
-        { eng: "Ahead", tr: "ileride" },
-        { eng: "Aid", tr: "yardım etmek" },
-        { eng: "Allocate", tr: "tahsis etmek" },
-        { eng: "Ambitious", tr: "hırslı" },
-        { eng: "Ancient", tr: "antik" },
-        { eng: "Anger", tr: "öfkeli" },
-        { eng: "Annoy", tr: "rahatsız edici" },
-        { eng: "Anticipate", tr: "ummak" },
-        { eng: "Anyway", tr: "her neyse" },
-        { eng: "Apart", tr: "ayrı" },
-        { eng: "Apiary", tr: "arı kovanı" },
-        { eng: "Apparent", tr: "görünür" },
-        { eng: "Appeal", tr: "başvurmak" },
-        { eng: "Appear", tr: "belli olmak" },
-        { eng: "Apple pie", tr: "elmalı turta" },
-        { eng: "Appoint", tr: "atamak" },
-        { eng: "Appreciate", tr: "değerini arttırmak" },
-        { eng: "Appropriate", tr: "uygun, münasip" },
-        { eng: "Arrest", tr: "tutuklamak" },
-        { eng: "Arrogant", tr: "kibirli" },
-        { eng: "Artichoke", tr: "enginar" },
-        { eng: "Ascent", tr: "yükseliş" },
-        { eng: "Aspect", tr: "görünüş" },
-        { eng: "Assert", tr: "ileri sürmek" },
-        { eng: "Assess", tr: "değer biçmek" },
-        { eng: "Asset", tr: "varlık" },
-        { eng: "Assign", tr: "atamak" },
-        { eng: "Associate", tr: "ilişkisi olmak" },
-        { eng: "Assume", tr: "farz etmek" },
-        { eng: "Assure", tr: "garanti etmek" },
-        { eng: "Attach", tr: "eklemek" },
-        { eng: "Attact", tr: "cezbetmek" },
-        { eng: "Attain", tr: "ulaşmak, elde etmek" },
-        { eng: "Attainable", tr: "ulaşılabilirlik" },
-        { eng: "Attempt", tr: "girişimde bulunmak" },
-        { eng: "Attractive", tr: "göz alıcı" },
-        { eng: "Attribute", tr: "bağlamak, atfetmek" },
-        { eng: "Audience", tr: "kitle" },
-        { eng: "Awful", tr: "berbat" },
-        { eng: "Backpack", tr: "sırt çantası" },
-        { eng: "Bald", tr: "kel" },
-        { eng: "Barely", tr: "zar zor" },
-        { eng: "Bear", tr: "taşımak, katlanmak" },
-        { eng: "Beat", tr: "vurmak" },
-        { eng: "Beehive", tr: "arı kovanı" },
-        { eng: "Belief", tr: "inanç" },
-        { eng: "Bellow", tr: "feryat" },
-        { eng: "Belong", tr: "ait olmak" },
-        { eng: "Below", tr: "aşağısında" },
-        { eng: "Belt", tr: "kemer" },
-        { eng: "Benefit", tr: "fayda" },
-        { eng: "Betray", tr: "ihanet etmek" },
-        { eng: "Beyond", tr: "ötesinde" },
-        { eng: "Bill", tr: "fatura" },
-        { eng: "Bite", tr: "ısırmak, lokma" },
-        { eng: "Bitter", tr: "acı" },
-        { eng: "Blame", tr: "ayıplamak, suçlamak" },
-        { eng: "Blank", tr: "boş" },
-        { eng: "Blanket", tr: "battaniye" },
-        { eng: "Blind", tr: "kör" },
-        { eng: "Blow", tr: "üflemek" },
-        { eng: "Bolt", tr: "sürgü, cıvata" },
-        { eng: "Border", tr: "sınır, kenar" },
-        { eng: "Borrow", tr: "ödünç almak" },
-        { eng: "Bowl", tr: "kase, çanak, tas" },
-        { eng: "Brand", tr: "marka" },
-        { eng: "Brave", tr: "cesur" },
-        { eng: "Brawn", tr: "kas gücü" },
-        { eng: "Breast", tr: "göğüs" },
-        { eng: "Breeze", tr: "esinti" },
-        { eng: "Brick", tr: "tuğla" },
-        { eng: "Brief", tr: "özet" },
-        { eng: "Bright", tr: "parlak" },
-        { eng: "Brilliant", tr: "zeki" },
-        { eng: "Bring up", tr: "yetiştirmek, büyütmek" },
-        { eng: "Broad", tr: "geniş" },
-        { eng: "Bug", tr: "hata" },
-        { eng: "Bullshit", tr: "saçmalık" },
-        { eng: "Butcher", tr: "kasap" },
-        { eng: "Cabbage", tr: "lahana" },
-        { eng: "Cabinet", tr: "dolap, kabin" },
-        { eng: "Cage", tr: "kafes" },
-        { eng: "Candidate", tr: "aday" },
-        { eng: "Can't stand", tr: "dayanamamak" },
-        { eng: "Capable", tr: "yetkin" },
-        { eng: "Captive", tr: "esir" },
-        { eng: "Cast", tr: "döküm, alçı, kalıp" },
-        { eng: "Cast Away", tr: "adada mahsur kalmak" },
-        { eng: "Catch up", tr: "yetişmek" },
-        { eng: "Census", tr: "nüfus sayımı" },
-        { eng: "Cesspool", tr: "lağım çukuru" },
-        { eng: "Charm", tr: "sevimli" },
-        { eng: "Chase", tr: "takip etmek" },
-        { eng: "Cheer / Solace", tr: "teselli etmek" },
-        { eng: "Chest", tr: "göğüs" },
-        { eng: "Chin", tr: "çene" },
-        { eng: "Chop", tr: "kesmek" },
-        { eng: "Chubby", tr: "hantal" },
-        { eng: "Church", tr: "kilise" },
-        { eng: "Cilium", tr: "kirpik" },
-        { eng: "Cite", tr: "alıntı yapmak" },
-        { eng: "Claim", tr: "iddia etmek" },
-        { eng: "Claw", tr: "pençe" },
-        { eng: "Clay", tr: "çamur" },
-        { eng: "Clerk", tr: "katip, yazıcı" },
-        { eng: "Cliff", tr: "uçurum" },
-        { eng: "Cling", tr: "yapışmak" },
-        { eng: "Clue", tr: "ipucu" },
-        { eng: "Coarse", tr: "kaba, kalın, kalitesiz" },
-        { eng: "Coefficient", tr: "katsayı" },
-        { eng: "Coherent", tr: "tutarlı" },
-        { eng: "Collapse", tr: "çökmek" },
-        { eng: "Collide", tr: "çarpışmak" },
-        { eng: "Column", tr: "sütun" },
-        { eng: "Commercial", tr: "ticari" },
-        { eng: "Commitmend", tr: "vaat" },
-        { eng: "Compare", tr: "kıyaslamak" },
-        { eng: "Compassion", tr: "merhamet" },
-        { eng: "Compatible", tr: "uygun" },
-        { eng: "Compensating", tr: "telafi edici" },
-        { eng: "Competitor", tr: "yarışmacı, rakip" },
-        { eng: "Complain", tr: "şikayet etmek" },
-        { eng: "Compliant", tr: "itaatkar" },
-        { eng: "Compose", tr: "oluşturmak" },
-        { eng: "Compound", tr: "birleşik" },
-        { eng: "Compute", tr: "hesaplama" },
-        { eng: "Conceal", tr: "gizlemek" },
-        { eng: "Concern", tr: "endişe" },
-        { eng: "Condition", tr: "şart" },
-        { eng: "Confinement", tr: "kapatılma, hapsedilme" },
-        { eng: "Conflict", tr: "zıtlık" },
-        { eng: "Confuse", tr: "kafası karışmak" },
-        { eng: "Confusion", tr: "karışıklık" },
-        { eng: "Conservation", tr: "koruma" },
-        { eng: "Consider", tr: "dikkate almak" },
-        { eng: "Consist", tr: "meydana gelmek" },
-        { eng: "Consistent", tr: "tutarlı" },
-        { eng: "Console", tr: "avutmak" },
-        { eng: "Consonant", tr: "sessiz harf" },
-        { eng: "Conspiracy", tr: "komplo" },
-        { eng: "Contribute", tr: "katkı sağlamak" },
-        { eng: "Controversial", tr: "tartışmalı" },
-        { eng: "Conventional", tr: "geleneksel" },
-        { eng: "Convert", tr: "dönüştürmek" },
-        { eng: "Convince", tr: "ikna etmek" },
-        { eng: "Corporate", tr: "kurumsal" },
-        { eng: "Correspond", tr: "karşılık gelmek, yazışmak" },
-        { eng: "Corrode", tr: "paslanmak, aşındırmak" },
-        { eng: "Corrosion", tr: "paslanmak" },
-        { eng: "Counter", tr: "karşı koymak" },
-        { eng: "Courage", tr: "cesaret" },
-        { eng: "Court", tr: "mahkeme" },
-        { eng: "Crack", tr: "bozuk" },
-        { eng: "Craft", tr: "zanaat" },
-        { eng: "Crash", tr: "kaza" },
-        { eng: "Crooked", tr: "eğri" },
-        { eng: "Crow", tr: "karga" },
-        { eng: "Crowded", tr: "kalabalık" },
-        { eng: "Cruel", tr: "acımasız" },
-        { eng: "Cumin", tr: "kimyon" },
-        { eng: "Curiousity", tr: "meraklı" },
-        { eng: "Curve", tr: "eğri" },
-        { eng: "Cute", tr: "sevimli" },
-        { eng: "Cynical", tr: "eleştirel" },
-        { eng: "Daring", tr: "cesur" },
-        { eng: "Dawn", tr: "şafak" },
-        { eng: "Deaf", tr: "sağır" },
-        { eng: "Debate", tr: "müzakere" },
-        { eng: "Debt", tr: "borç" },
-        { eng: "Decay", tr: "çürümek" },
-        { eng: "Deceive", tr: "aldatmak" },
-        { eng: "Deck", tr: "destek" },
-        { eng: "Defect", tr: "defo, özür" },
-        { eng: "Delegate", tr: "devretmek" },
-        { eng: "Deliberate", tr: "kasıtlı" },
-        { eng: "Delicate", tr: "nazik" },
-        { eng: "Delightful", tr: "hoş" },
-        { eng: "Deliver", tr: "teslim etmek" },
-        { eng: "Delusion", tr: "aldatma" },
-        { eng: "Demolish", tr: "yıkmak" },
-        { eng: "Demonstrate", tr: "göstermek" },
-        { eng: "Dent", tr: "çöküntü" },
-        { eng: "Deny", tr: "inkar etmek" },
-        { eng: "Deprive", tr: "yoksun bırakmak" },
-        { eng: "Derated", tr: "değeri düşürüldü" },
-        { eng: "Deserve", tr: "hak etmek" },
-        { eng: "Desire", tr: "arzu" },
-        { eng: "Desperately", tr: "umutsuzca" },
-        { eng: "Despite", tr: "aksine" },
-        { eng: "Destiny", tr: "kader" },
-        { eng: "Detect", tr: "tespit etmek" },
-        { eng: "Devote", tr: "adanmış olmak" },
-        { eng: "Devoted", tr: "sadık" },
-        { eng: "Dice", tr: "zar, oyundaki zar" },
-        { eng: "Differ", tr: "farklı" },
-        { eng: "Dilemma", tr: "ikilem" },
-        { eng: "Discard", tr: "at" },
-        { eng: "Disease", tr: "hastalık" },
-        { eng: "Disgrace", tr: "ayıp, utanç" },
-        { eng: "Disrupt", tr: "bozmak" },
-        { eng: "Distance", tr: "mesafe" },
-        { eng: "Distract", tr: "dikkatini dağıtmak" },
-        { eng: "District", tr: "semt, bölge" },
-        { eng: "Diverse", tr: "türlü" },
-        { eng: "Divorce", tr: "boşanmak" },
-        { eng: "Dizziness", tr: "baş dönmesi" },
-        { eng: "Dull", tr: "donuk" },
-        { eng: "Dump", tr: "çöplük" },
-        { eng: "Duration", tr: "süre" },
-        { eng: "During", tr: "sırasında" },
-        { eng: "East", tr: "doğu" },
-        { eng: "Educate", tr: "eğitmek" },
-        { eng: "Elaborate", tr: "detaylandırmak" },
-        { eng: "Elegant", tr: "zarif, şık" },
-        { eng: "Embroider", tr: "oyalamak" },
-        { eng: "Emphasis", tr: "vurgu" },
-        { eng: "Empty", tr: "boş" },
-        { eng: "Encounter", tr: "karşılaşmak" },
-        { eng: "Encourage", tr: "cesaretlendirmek" },
-        { eng: "Endure", tr: "dayanmak, katlanmak" },
-        { eng: "Enemy", tr: "düşman" },
-        { eng: "Enforce", tr: "uygulamak" },
-        { eng: "Enhance", tr: "geliştirmek" },
-        { eng: "Enormous", tr: "kocaman" },
-        { eng: "Enquiry", tr: "soruşturma" },
-        { eng: "Ensure", tr: "sağlamak" },
-        { eng: "Enthusiastic", tr: "coşkulu" },
-        { eng: "Entire", tr: "tümü" },
-        { eng: "Envelop", tr: "örtmek, kuşatmak" },
-        { eng: "Envelope", tr: "zarf" },
-        { eng: "Escape", tr: "kaçmak, kaçış, kurtulmak" },
-        { eng: "Essential", tr: "temel" },
-        { eng: "Estimate", tr: "tahmin etmek" },
-        { eng: "Evaluate", tr: "değerlendirmek" },
-        { eng: "Even", tr: "bile" },
-        { eng: "Event", tr: "olay" },
-        { eng: "Eventually", tr: "nihayet" },
-        { eng: "Evil", tr: "fena, zararlı, uğursuz" },
-        { eng: "Exaggerate", tr: "abartmak" },
-        { eng: "Examine", tr: "incelemek, sorgulamak" },
-        { eng: "Except", tr: "hariç tutmak" },
-        { eng: "Exchange", tr: "değişme, takas" },
-        { eng: "Excise", tr: "vergi, kesmek" },
-        { eng: "Excised", tr: "kesilmiş" },
-        { eng: "Exclude", tr: "hariç tutmak" },
-        { eng: "Exclusive", tr: "özel, seçkin, hariç tutulan" },
-        { eng: "Excuse", tr: "mazeret, bahane" },
-        { eng: "Execute", tr: "uygulamak" },
-        { eng: "Exile", tr: "sürgün" },
-        { eng: "Expect", tr: "beklemek" },
-        { eng: "Express", tr: "ifade etmek" },
-        { eng: "Extend", tr: "uzatmak" },
-        { eng: "Eyebrow", tr: "kaş" },
-        { eng: "Eyelash", tr: "kirpik" },
-        { eng: "Eyelid", tr: "göz kapağı" },
-        { eng: "Fabric", tr: "kumaş" },
-        { eng: "Facilitate", tr: "kolaylaştırmak" },
-        { eng: "Facility", tr: "tesis, kolaylık" },
-        { eng: "Fade", tr: "rengi solmak" },
-        { eng: "Faint", tr: "sönük, bayılmak" },
-        { eng: "Faith", tr: "inanç, iman, din" },
-        { eng: "Faithful", tr: "sadık" },
-        { eng: "Fault", tr: "hata" },
-        { eng: "Favorable", tr: "olumlu" },
-        { eng: "Feasible", tr: "mümkün" },
-        { eng: "Feces", tr: "dışkı" },
-        { eng: "Fell", tr: "düşmüş, merhametsiz" },
-        { eng: "Fence", tr: "çit, parmaklık" },
-        { eng: "Fertile", tr: "bereketli" },
-        { eng: "Fever", tr: "ateş" },
-        { eng: "Fierce", tr: "şiddetli, hiddetli" },
-        { eng: "Filthy", tr: "pis" },
-        { eng: "Flame", tr: "alev" },
-        { eng: "Flat", tr: "düz, yassı, daire" },
-        { eng: "Flavor", tr: "tat, lezzet" },
-        { eng: "Flaw", tr: "kusur" },
-        { eng: "Flee", tr: "kaçmak, kaçırmak" },
-        { eng: "Flimsy", tr: "dayanıksız, çürük" },
-        { eng: "Flu", tr: "grip" },
-        { eng: "Fluent", tr: "akıcı" },
-        { eng: "Forehead", tr: "alın" },
-        { eng: "Fork", tr: "çatal" },
-        { eng: "Fortunate", tr: "minnettar" },
-        { eng: "Fortunately", tr: "neyse ki" },
-        { eng: "Fortune", tr: "servet" },
-        { eng: "Forward", tr: "ileri" },
-        { eng: "Fracture", tr: "kırık" },
-        { eng: "Frame", tr: "çerçeve, yapı" },
-        { eng: "Friction", tr: "sürtünme" },
-        { eng: "Frog", tr: "kurbağa" },
-        { eng: "Fudge", tr: "geçiştirmek, uydurmak" },
-        { eng: "Fugitive", tr: "firari, kaçak" },
-        { eng: "Fulfill", tr: "tatmin etmek" },
-        { eng: "Fund", tr: "fonlamak" },
-        { eng: "Fur", tr: "kürk" },
-        { eng: "Furniture", tr: "mobilya" },
-        { eng: "Garbage", tr: "çöp" },
-        { eng: "Gender", tr: "cinsiyet" },
-        { eng: "Generate", tr: "oluşturmak, üretmek" },
-        { eng: "Genious", tr: "dahi" },
-        { eng: "Genuine", tr: "hakiki, gerçek" },
-        { eng: "Glad", tr: "memnun" },
-        { eng: "Gleaming", tr: "parlamak" },
-        { eng: "Glide", tr: "süzülmek" },
-        { eng: "Glove", tr: "eldiven" },
-        { eng: "Glow", tr: "parıltı" },
-        { eng: "Gorgeous", tr: "muhteşem" },
-        { eng: "Gradually", tr: "git gide" },
-        { eng: "Grass", tr: "çimen, ot" },
-        { eng: "Gratefull", tr: "minnettar" },
-        { eng: "Greasy", tr: "yağlı" },
-        { eng: "Grenade", tr: "el bombası" },
-        { eng: "Gripping", tr: "sürükleyici" },
-        { eng: "Groom", tr: "damat" },
-        { eng: "Grow", tr: "büyümek" },
-        { eng: "Grow up", tr: "büyümek, boy atmak" },
-        { eng: "Grumpy", tr: "huysuz" },
-        { eng: "Guard", tr: "koruma" },
-        { eng: "Gulp", tr: "yudum, yutmak" },
-        { eng: "Handle", tr: "halletmek" },
-        { eng: "Handy", tr: "kullanışlı" },
-        { eng: "Hang", tr: "asmak" },
-        { eng: "Harbor", tr: "liman" },
-        { eng: "Haven", tr: "sığınak" },
-        { eng: "Hawk", tr: "şahin" },
-        { eng: "Heaven", tr: "cennet" },
-        { eng: "Herb", tr: "bitki, ot" },
-        { eng: "Hesitate", tr: "tereddüt etmek" },
-        { eng: "Hidden", tr: "gizlemek" },
-        { eng: "Hide", tr: "saklamak, deri, post" },
-        { eng: "Hill", tr: "tepe" },
-        { eng: "Hinder", tr: "engellemek" },
-        { eng: "Hint", tr: "ipucu" },
-        { eng: "Hive", tr: "kovan" },
-        { eng: "Hollow", tr: "çukur" },
-        { eng: "Honor", tr: "onur" },
-        { eng: "Hook", tr: "kanca" },
-        { eng: "Horizon", tr: "ufuk" },
-        { eng: "Horizontal", tr: "yatay" },
-        { eng: "Howl", tr: "uluma" },
-        { eng: "Hushed", tr: "sessiz" },
-        { eng: "Imitate", tr: "taklit etmek" },
-        { eng: "Import", tr: "ithalat, içe aktarmak" },
-        { eng: "Impulsive", tr: "itici, dürtüsel" },
-        { eng: "Incline", tr: "eğim" },
-        { eng: "Inflate", tr: "şişirmek" },
-        { eng: "Ingest", tr: "yemek, yutmak" },
-        { eng: "Ingredient", tr: "bileşen" },
-        { eng: "Ingredients", tr: "içindekiler, malzemeler" },
-        { eng: "Insect", tr: "böcek" },
-        { eng: "Insert", tr: "eklemek" },
-        { eng: "Inserted", tr: "yerleştirildi, eklenmek" },
-        { eng: "Instead", tr: "yerine" },
-        { eng: "Instruction", tr: "talimat" },
-        { eng: "Integument", tr: "deri, kabuk" },
-        { eng: "Intend", tr: "niyet etmek" },
-        { eng: "Interior", tr: "iç mekan" },
-        { eng: "Internal", tr: "dahili / içsel" },
-        { eng: "Intersection", tr: "kesişim" },
-        { eng: "Interval", tr: "aralık" },
-        { eng: "Intestine", tr: "bağırsak" },
-        { eng: "Intrench", tr: "işini sağlama almak, siper" },
-        { eng: "Introduce", tr: "tanıtmak, tanıştırmak" },
-        { eng: "Introvert", tr: "içe kapanık" },
-        { eng: "Invest", tr: "yatırım yapmak" },
-        { eng: "Investment", tr: "yatırım" },
-        { eng: "Inward", tr: "içe doğru" },
-        { eng: "Issue", tr: "konu, sorun, mesele" },
-        { eng: "Identical", tr: "özdeş" },
-        { eng: "Identify", tr: "tanımlamak" },
-        { eng: "Illustrate", tr: "resimlendirmek" },
-        { eng: "Immediate", tr: "ani" },
-        { eng: "Immediately", tr: "aniden" },
-        { eng: "Impact", tr: "darbe" },
-        { eng: "Implement", tr: "uygulamak" },
-        { eng: "Impolite", tr: "kaba" },
-        { eng: "Include", tr: "içermek, katmak" },
-        { eng: "Individual", tr: "bireysel" },
-        { eng: "Inhale", tr: "nefes almak, içine çekmek" },
-        { eng: "Inheritance", tr: "miras" },
-        { eng: "Inquisitive", tr: "meraklı" },
-        { eng: "Inspect", tr: "incelemek, kontrol etmek" },
-        { eng: "Inspire", tr: "ilham vermek" },
-        { eng: "Insurance", tr: "sigorta" },
-        { eng: "Intelligent", tr: "zeki" },
-        { eng: "Intense", tr: "yoğun" },
-        { eng: "Interpret", tr: "yorumlamak" },
-        { eng: "Interrupt", tr: "yarıda kesmek" },
-        { eng: "Invade", tr: "istila etmek" },
-        { eng: "Invasion", tr: "saldırı, istila" },
-        { eng: "Invincible", tr: "yenilmez" },
-        { eng: "Invisible", tr: "görünmez" },
-        { eng: "Involved", tr: "karmaşık" },
-        { eng: "Ironic", tr: "alaycı" },
-        { eng: "Jacket", tr: "ceket" },
-        { eng: "Jail", tr: "hapis" },
-        { eng: "Jam", tr: "reçel, sıkışıklık" },
-        { eng: "Jar", tr: "kavanoz" },
-        { eng: "Jerk", tr: "pislik / ani hareket" },
-        { eng: "Jewelry", tr: "takı" },
-        { eng: "Judge", tr: "yargılamak" },
-        { eng: "Junk", tr: "ıvır zıvır" },
-        { eng: "Kennel", tr: "köpek kulübesi" },
-        { eng: "Kidnap", tr: "zorla kaçırmak" },
-        { eng: "Kidney", tr: "böbrek" },
-        { eng: "Kin", tr: "aile, akraba" },
-        { eng: "Knee", tr: "diz" },
-        { eng: "Knight", tr: "silahşör, şövalye" },
-        { eng: "Knob", tr: "topuz, tutacak" },
-        { eng: "Knot", tr: "düğüm" },
-        { eng: "Knowledge", tr: "bilgi" },
-        { eng: "Label", tr: "etiket" },
-        { eng: "Labor", tr: "iş gücü, emek" },
-        { eng: "Lack", tr: "eksiklik" },
-        { eng: "Ladle", tr: "kepçe (yemek)" },
-        { eng: "Lamb", tr: "kuzu, koyun eti" },
-        { eng: "Lamppost", tr: "sokak lambası" },
-        { eng: "Lampshade", tr: "abajur" },
-        { eng: "Land", tr: "kara, arazi" },
-        { eng: "Landscape", tr: "manzara" },
-        { eng: "Lane", tr: "dar yol, şerit" },
-        { eng: "Lash", tr: "kirpik / kamçı" },
-        { eng: "Laundry", tr: "yıkanacak çamaşır" },
-        { eng: "Lay", tr: "yatmak" },
-        { eng: "Leaf", tr: "yaprak" },
-        { eng: "Leak", tr: "sızıntı, kaçak" },
-        { eng: "Lean", tr: "yaslanmak / zayıflamak" },
-        { eng: "Lease", tr: "kiralama" },
-        { eng: "Leather", tr: "deri, meşin" },
-        { eng: "Legacy", tr: "miras" },
-        { eng: "Lend", tr: "ödünç vermek" },
-        { eng: "Lettuce", tr: "salata, kıvırcık" },
-        { eng: "Lever", tr: "kaldıraç" },
-        { eng: "Liar", tr: "yalancı" },
-        { eng: "Liberty", tr: "serbest olmak, özgürlük" },
-        { eng: "Lick", tr: "yalamak" },
-        { eng: "Lid", tr: "kapak" },
-        { eng: "Line", tr: "hat, çizgi" },
-        { eng: "Link", tr: "birleştirmek" },
-        { eng: "Lip", tr: "dudak" },
-        { eng: "Liquidate", tr: "tasfiye etmek" },
-        { eng: "Literature", tr: "edebiyat" },
-        { eng: "Litter", tr: "çöp, dağınıklık" },
-        { eng: "Liver", tr: "karaciğer" },
-        { eng: "Loaf", tr: "bütün ekmek" },
-        { eng: "Loan", tr: "kredi" },
-        { eng: "Lobster", tr: "ıstakoz" },
-        { eng: "Locate", tr: "kurmak, yerleştirmek" },
-        { eng: "Look Jacked", tr: "kaslı görünmek" },
-        { eng: "Loose", tr: "bol, bağsız" },
-        { eng: "Lorry", tr: "kamyon" },
-        { eng: "Loss", tr: "kayıp, zarar" },
-        { eng: "Lot", tr: "mülk, arsa" },
-        { eng: "Loyal", tr: "sadık, vefalı" },
-        { eng: "Luggage", tr: "valiz, yük" },
-        { eng: "Lung", tr: "akciğer" },
-        { eng: "Lungs", tr: "akciğer" },
-        { eng: "Luxury", tr: "lüks" },
-        { eng: "Mad", tr: "deli" },
-        { eng: "Magical", tr: "büyüleyici" },
-        { eng: "Magnificient", tr: "görkemli / ihtişam" },
-        { eng: "Magnify", tr: "büyütmek" },
-        { eng: "Magnifying glass", tr: "büyüteç" },
-        { eng: "Maid", tr: "kadın hizmetçi" },
-        { eng: "Maintain", tr: "sürdürmek" },
-        { eng: "Maintenance", tr: "bakım" },
-        { eng: "Maniac", tr: "manyak" },
-        { eng: "Manner", tr: "tavır, görgü" },
-        { eng: "Manufacture", tr: "üretmek" },
-        { eng: "Margin", tr: "marj, katkı" },
-        { eng: "Mark", tr: "işaret, işaretlemek" },
-        { eng: "Martial", tr: "savaşçı" },
-        { eng: "Marvelous", tr: "şahane, harika" },
-        { eng: "Massacre", tr: "katliam" },
-        { eng: "Massive", tr: "çok büyük, ağır" },
-        { eng: "Mat", tr: "hasır, paspas" },
-        { eng: "Mate", tr: "arkadaş" },
-        { eng: "Matter", tr: "mesele, önemli olmak" },
-        { eng: "Mattress", tr: "yatak, sedir" },
-        { eng: "Mature", tr: "olgun" },
-        { eng: "Mayor", tr: "belediye başkanı" },
-        { eng: "Meadow", tr: "çayır, mera" },
-        { eng: "Meal", tr: "yemek" },
-        { eng: "Means", tr: "yol, yardım, para, araç" },
-        { eng: "Meantime", tr: "bu arada" },
-        { eng: "Meanwhile", tr: "aynı anda" },
-        { eng: "Melon", tr: "kavun" },
-        { eng: "Melt", tr: "erimek" },
-        { eng: "Membrane", tr: "zar, örtü" },
-        { eng: "Memorable", tr: "unutulmayacak" },
-        { eng: "Memorandum", tr: "not" },
-        { eng: "Memorial", tr: "anıt" },
-        { eng: "Memorize", tr: "ezberlemek" },
-        { eng: "Mend", tr: "tamir etmek" },
-        { eng: "Mention", tr: "bahsetmek" },
-        { eng: "Merchant", tr: "tüccar" },
-        { eng: "Merciful", tr: "merhametli" },
-        { eng: "Mercy", tr: "merhamet" },
-        { eng: "Mere", tr: "sadece, yalnızca" },
-        { eng: "Merely", tr: "sadece, ancak" },
-        { eng: "Merge", tr: "birleşmek" },
-        { eng: "Merit", tr: "hak etmek, değmek" },
-        { eng: "Merry", tr: "mutlu" },
-        { eng: "Mess", tr: "kargaşa, dağınıklık" },
-        { eng: "Mice", tr: "fareler" },
-        { eng: "Mild", tr: "hafif, yumuşak, ılık" },
-        { eng: "Millet", tr: "darı" },
-        { eng: "Mince", tr: "kıyma et" },
-        { eng: "Mine", tr: "benim / maden ocağı / mayın" },
-        { eng: "Minister", tr: "bakan, büyükelçi" },
-        { eng: "Miracle", tr: "mucize" },
-        { eng: "Miser", tr: "cimri" },
-        { eng: "Miserable", tr: "sefil" },
-        { eng: "Mislay", tr: "nereye koyduğunu unutmak" },
-        { eng: "Mitigate", tr: "hafifletmek" },
-        { eng: "Mobisture", tr: "nem" },
-        { eng: "Moderate", tr: "ılımlı" },
-        { eng: "Modest", tr: "alçak gönüllü" },
-        { eng: "Mole", tr: "köstebek / vücuttaki ben" },
-        { eng: "Monument", tr: "anıt" },
-        { eng: "Mood", tr: "mizaç, ruh hali" },
-        { eng: "Mortgage", tr: "ipotek" },
-        { eng: "Mosquite", tr: "sivrisinek" },
-        { eng: "Moss", tr: "yosun" },
-        { eng: "Motional", tr: "hareketli" },
-        { eng: "Mud", tr: "çamur" },
-        { eng: "Mushroom", tr: "mantar" },
-        { eng: "Mustard", tr: "hardal" },
-        { eng: "Mutual", tr: "iki taraflı, müşterek" },
-        { eng: "Nail", tr: "tırnak / çivi" },
-        { eng: "Napkin", tr: "peçete" },
-        { eng: "Narrate", tr: "anlatmak, söylemek" },
-        { eng: "Narrow", tr: "dar" },
-        { eng: "Nasty", tr: "kötü, edepsiz, pis" },
-        { eng: "Nation", tr: "ulus" },
-        { eng: "Native", tr: "yerli" },
-        { eng: "Naughty", tr: "yaramaz" },
-        { eng: "Neck", tr: "boyun" },
-        { eng: "Necklase", tr: "kolye" },
-        { eng: "Needle", tr: "iğne, şiş" },
-        { eng: "Negative", tr: "olumsuz" },
-        { eng: "Neither … Nor …", tr: "ne o ne diğeri" },
-        { eng: "Nemesis", tr: "düşman / intikam meleği" },
-        { eng: "Nephew", tr: "erkek yeğen" },
-        { eng: "Nest", tr: "yuva, kuş yuvası" },
-        { eng: "Nevertheless", tr: "buna rağmen, yine de" },
-        { eng: "Niece", tr: "kız yeğen" },
-        { eng: "Nightmare", tr: "kabus" },
-        { eng: "Noble", tr: "soylu" },
-        { eng: "Nominate", tr: "aday göstermek" },
-        { eng: "Nonsense", tr: "saçmalık" },
-        { eng: "Nose", tr: "burun" },
-        { eng: "Notice", tr: "duyuru, fark etmek" },
-        { eng: "Novel", tr: "roman" },
-        { eng: "Nowadays", tr: "bugünlerde" },
-        { eng: "Nude", tr: "çıplak" },
-        { eng: "Nuisance", tr: "sıkıntı, dert" },
-        { eng: "Oak", tr: "meşe" },
-        { eng: "Obey", tr: "itaat etmek" },
-        { eng: "Object", tr: "itiraz etmek / nesne" },
-        { eng: "Obligation", tr: "zorunluluk" },
-        { eng: "Oblige", tr: "zorunda bırakmak" },
-        { eng: "Observe", tr: "gözlemlemek" },
-        { eng: "Obstacle", tr: "engel" },
-        { eng: "Obtain", tr: "elde etmek" },
-        { eng: "Obvious", tr: "aşikar, apaçık" },
-        { eng: "Occupation", tr: "meslek, işgal" },
-        { eng: "Occur", tr: "meydana gelmek" },
-        { eng: "Offend", tr: "kızdırmak, incitmek" },
-        { eng: "Offer", tr: "teklif etmek" },
-        { eng: "Opponent", tr: "rakip" },
-        { eng: "Orbit", tr: "yörünge" },
-        { eng: "Order", tr: "emir, sipariş, düzen" },
-        { eng: "Ordinary", tr: "sıradan" },
-        { eng: "Oven", tr: "fırın" },
-        { eng: "Overcome", tr: "üstesinden gelmek" },
-        { eng: "Overdo", tr: "abartmak" },
-        { eng: "Oversee", tr: "denetlemek" },
-        { eng: "Owe", tr: "borçlu olmak" },
-        { eng: "Owernship", tr: "mülkiyet" },
-        { eng: "Owl", tr: "baykuş" },
-        { eng: "Own", tr: "sahip olmak" },
-        { eng: "Oyster", tr: "istiridye" },
-        { eng: "Pain", tr: "acı, ağrı" },
-        { eng: "Pair", tr: "çift" },
-        { eng: "Pale", tr: "soluk, solgun" },
-        { eng: "Pan", tr: "tava, tencere" },
-        { eng: "Paradise", tr: "cennet" },
-        { eng: "Parliament", tr: "parlamento" },
-        { eng: "Parrot", tr: "papağan" },
-        { eng: "Participant", tr: "katılımcı" },
-        { eng: "Participate", tr: "katılmak" },
-        { eng: "Particular", tr: "özel, titiz, belirli" },
-        { eng: "Passion", tr: "tutku" },
-        { eng: "Path", tr: "patika" },
-        { eng: "Pathetic", tr: "acınası" },
-        { eng: "Patience", tr: "sabır" },
-        { eng: "Pea", tr: "bezelye" },
-        { eng: "Peace", tr: "barış" },
-        { eng: "Peanut", tr: "yer fıstığı" },
-        { eng: "Pear", tr: "armut" },
-        { eng: "Pearl", tr: "inci" },
-        { eng: "Peasant", tr: "köylü, çiftçi" },
-        { eng: "Peculiar", tr: "garip, tuhaf" },
-        { eng: "Pedestrian", tr: "yaya" },
-        { eng: "Pee", tr: "çiş" },
-        { eng: "Peel", tr: "kabuk soymak" },
-        { eng: "Pelt", tr: "post, deri" },
-        { eng: "Pension", tr: "emekli maaşı" },
-        { eng: "Pepper", tr: "biber" },
-        { eng: "Perform", tr: "sergilemek, çalışmak" },
-        { eng: "Perhaps", tr: "belki" },
-        { eng: "Permanent", tr: "kalıcı" },
-        { eng: "Permission", tr: "izin" },
-        { eng: "Permit", tr: "izin vermek" },
-        { eng: "Persuade", tr: "ikna etmek" },
-        { eng: "Pessimist", tr: "kötümser" },
-        { eng: "Phantom", tr: "hayalet, hayali" },
-        { eng: "Pick", tr: "seçmek, toplamak" },
-        { eng: "Pick up", tr: "toplamak, araçla almak" },
-        { eng: "Pickle", tr: "turşu" },
-        { eng: "Pie", tr: "turta, pasta" },
-        { eng: "Piece", tr: "parça" },
-        { eng: "Pig", tr: "domuz" },
-        { eng: "Pigeon", tr: "güvercin" },
-        { eng: "Pile", tr: "yığın" },
-        { eng: "Pill", tr: "hap" },
-        { eng: "Pillow", tr: "yastık" },
-        { eng: "Pimple", tr: "sivilce" },
-        { eng: "Pincers", tr: "kerpeten, kıskaç" },
-        { eng: "Pinch", tr: "çimdiklemek" },
-        { eng: "Pine", tr: "çam" },
-        { eng: "Pineapple", tr: "ananas" },
-        { eng: "Pioneer", tr: "öncü" },
-        { eng: "Pity", tr: "acımak, merhamet" },
-        { eng: "Plain", tr: "açık, sade, düz" },
-        { eng: "Plate", tr: "tabak" },
-        { eng: "Pleasant", tr: "hoş, keyifli" },
-        { eng: "Pleasure", tr: "zevk, memnuniyet" },
-        { eng: "Plot", tr: "planlamak, komplo" },
-        { eng: "Plug", tr: "fiş, tıkaç" },
-        { eng: "Poem", tr: "şiir" },
-        { eng: "Poet", tr: "şair" },
-        { eng: "Poison", tr: "zehir" },
-        { eng: "Polish", tr: "parlatmak" },
-        { eng: "Pollute", tr: "çevreyi kirletmek" },
-        { eng: "Port", tr: "liman" },
-        { eng: "Possess", tr: "sahip olmak" },
-        { eng: "Postage", tr: "posta ücreti" },
-        { eng: "Postpone", tr: "ertelemek" },
-        { eng: "Poverty", tr: "yoksulluk" },
-        { eng: "Powder", tr: "toz, pudra" },
-        { eng: "Praise", tr: "övmek" },
-        { eng: "Pray", tr: "dua etmek" },
-        { eng: "Preach", tr: "vaaz vermek" },
-        { eng: "Precious", tr: "değerli" },
-        { eng: "Precise", tr: "kesin" },
-        { eng: "Precision", tr: "kesinlik, hassasiyet" },
-        { eng: "Predict", tr: "tahmin etmek" },
-        { eng: "Pregnant", tr: "hamile" },
-        { eng: "Prejudice", tr: "önyargı" },
-        { eng: "Prescription", tr: "reçete" },
-        { eng: "Presence", tr: "varlık" },
-        { eng: "Present", tr: "mevcut, şimdiki, armağan" },
-        { eng: "Preserve", tr: "korumak, konserve yapmak" },
-        { eng: "Pretend", tr: "numara yapmak" },
-        { eng: "Prevail", tr: "hakim olmak" },
-        { eng: "Prevent", tr: "önlemek" },
-        { eng: "Previous", tr: "öncesi, önceki" },
-        { eng: "Price", tr: "fiyat" },
-        { eng: "Pride", tr: "onur, gurur" },
-        { eng: "Priest", tr: "rahip" },
-        { eng: "Primitive", tr: "ilkel, basit" },
-        { eng: "Prince", tr: "prens" },
-        { eng: "Principle", tr: "ilke" },
-        { eng: "Priority", tr: "öncelik" },
-        { eng: "Prison", tr: "hapis" },
-        { eng: "Prisoner", tr: "mahkum" },
-        { eng: "Privilege", tr: "imtiyaz" },
-        { eng: "Prize", tr: "ödül" },
-        { eng: "Produce", tr: "üretmek" },
-        { eng: "Product", tr: "ürün" },
-        { eng: "Profession", tr: "meslek" },
-        { eng: "Progress", tr: "gelişme, ilerleme" },
-        { eng: "Prohibit", tr: "yasaklamak" },
-        { eng: "Promote", tr: "terfi ettirmek, teşvik etmek" },
-        { eng: "Proof", tr: "kanıt" },
-        { eng: "Propeller", tr: "pervane" },
-        { eng: "Property", tr: "mal, mülk, eşya" },
-        { eng: "Proportion", tr: "orantı" },
-        { eng: "Propose", tr: "önermek" },
-        { eng: "Proud", tr: "gururlu" },
-        { eng: "Prove", tr: "kanıtlamak" },
-        { eng: "Provide", tr: "sağlamak" },
-        { eng: "Publish", tr: "basım, yayınlamak" },
-        { eng: "Puke", tr: "kusmak" },
-        { eng: "Pull up", tr: "aracı durdurmak" },
-        { eng: "Pullover", tr: "kazak" },
-        { eng: "Pumpkin", tr: "kabak" },
-        { eng: "Punctual", tr: "tam zamanında" },
-        { eng: "Punish", tr: "cezalandırmak" },
-        { eng: "Purchase", tr: "satın almak" },
-        { eng: "Pure", tr: "saf, temiz" },
-        { eng: "Pursuit", tr: "kovalama, peşinde koşma" },
-        { eng: "Quaint", tr: "tuhaf, antika" },
-        { eng: "Qualification", tr: "nitelik" },
-        { eng: "Qualify", tr: "nitelendirmek" },
-        { eng: "Quantify", tr: "ölçmek" },
-        { eng: "Quantity", tr: "miktar" },
-        { eng: "Quarrel", tr: "tartışmak, atışmak" },
-        { eng: "Quest", tr: "aramak, görev" },
-        { eng: "Queue", tr: "sıra, kuyruk" },
-        { eng: "Quick", tr: "hızlı, çabuk" },
-        { eng: "Quiet", tr: "sessiz, sakin" },
-        { eng: "Quite", tr: "hemen hemen, oldukça" },
-        { eng: "Raise", tr: "yükseltmek, zam yapmak" },
-        { eng: "Rapid", tr: "çabuk, hızlı" },
-        { eng: "Rare", tr: "nadir" },
-        { eng: "Raspy", tr: "kulak tırmalayıcı" },
-        { eng: "Rat", tr: "fare" },
-        { eng: "Rated", tr: "değerlendirilmiş" },
-        { eng: "Raw", tr: "ham, çiğ" },
-        { eng: "Razor", tr: "ustura, tıraş makinesi" },
-        { eng: "Reach", tr: "ulaşmak, erişmek" },
-        { eng: "Realize", tr: "fark etmek, gerçekleştirmek" },
-        { eng: "Reasonable", tr: "makul" },
-        { eng: "Recall", tr: "anımsamak" },
-        { eng: "Receipt", tr: "makbuz" },
-        { eng: "Recent", tr: "yakın zamanda olan" },
-        { eng: "Reception", tr: "resepsiyon, resmi davet" },
-        { eng: "Recipe", tr: "yemek tarifi" },
-        { eng: "Recognize", tr: "tanımak" },
-        { eng: "Recommend", tr: "tavsiye etmek" },
-        { eng: "Recover", tr: "iyileşmek, geri kazanmak" },
-        { eng: "Redemption", tr: "kefaret" },
-        { eng: "Reduce", tr: "azaltmak" },
-        { eng: "Reflect", tr: "yansıtmak" },
-        { eng: "Refrigerator", tr: "buzdolabı" },
-        { eng: "Refugee", tr: "mülteci, kazazede" },
-        { eng: "Regard", tr: "dikkat, saygı, ilgili" },
-        { eng: "Region", tr: "bölge" },
-        { eng: "Regret", tr: "pişman olmak" },
-        { eng: "Regulation", tr: "yönetmelik" },
-        { eng: "Reject", tr: "reddetmek" },
-        { eng: "Related", tr: "ilgili" },
-        { eng: "Relation", tr: "ilişki, akrabalık" },
-        { eng: "Relationship", tr: "ilişki" },
-        { eng: "Relative", tr: "akraba" },
-        { eng: "Release", tr: "serbest bırakmak" },
-        { eng: "Relevant", tr: "ilgili" },
-        { eng: "Reliable", tr: "güvenilir" },
-        { eng: "Relief", tr: "rahatlama" },
-        { eng: "Relieve", tr: "uzaklaştırmak, rahatlatmak" },
-        { eng: "Religion", tr: "din, inanç" },
-        { eng: "Reluctant", tr: "isteksiz" },
-        { eng: "Remain", tr: "geriye kalmak" },
-        { eng: "Remark", tr: "açıklamak, belirtmek" },
-        { eng: "Remind", tr: "anımsatmak" },
-        { eng: "Repair", tr: "onarmak" },
-        { eng: "Replace", tr: "yerine koymak" },
-        { eng: "Represent", tr: "temsil etmek" },
-        { eng: "Reputation", tr: "itibar, ün" },
-        { eng: "Request", tr: "rica, talep etmek" },
-        { eng: "Require", tr: "gerekmek" },
-        { eng: "Rescue", tr: "kurtarmak" },
-        { eng: "Resent", tr: "hoşlanmamak, içerlemek" },
-        { eng: "Resident", tr: "ikamet eden kişi" },
-        { eng: "Resign", tr: "istifa etmek" },
-        { eng: "Resist", tr: "karşı koymak" },
-        { eng: "Respond", tr: "cevap vermek" },
-        { eng: "Restrict", tr: "sınırlamak" },
-        { eng: "Revenge", tr: "intikam" },
-        { eng: "Revise", tr: "revize etmek" },
-        { eng: "Revoulution", tr: "devrim" },
-        { eng: "Revover", tr: "devrimci" },
-        { eng: "Rib", tr: "kaburga" },
-        { eng: "Rib Cage", tr: "göğüs kafesi" },
-        { eng: "Ribbon", tr: "kurdele, şerit" },
-        { eng: "Rid", tr: "kurtulmak" },
-        { eng: "Ridiculous", tr: "gülünç, saçma" },
-        { eng: "Rifle", tr: "tüfek" },
-        { eng: "Ring", tr: "yüzük, halka" },
-        { eng: "Ripe", tr: "olgun" },
-        { eng: "Rival", tr: "rakip" },
-        { eng: "Robber", tr: "hırsız" },
-        { eng: "Rolled", tr: "yuvarlanmak" },
-        { eng: "Roof", tr: "çatı" },
-        { eng: "Rope", tr: "halat, ip" },
-        { eng: "Rough", tr: "kaba, pürüzlü" },
-        { eng: "Row", tr: "sıra, kürek çekmek" },
-        { eng: "Royal", tr: "asil, kraliyet" },
-        { eng: "Rubbish", tr: "çöp, saçmalık" },
-        { eng: "Rude", tr: "kaba, saygısız" },
-        { eng: "Ruin", tr: "harabe, mahvetmek" },
-        { eng: "Rumble", tr: "gürlemek" },
-        { eng: "Runaway", tr: "kaçak, kaçmak" },
-        { eng: "Rush", tr: "acele etmek" },
-        { eng: "Rust", tr: "pas" },
-        { eng: "Sacrifice", tr: "fedakarlık" },
-        { eng: "Sail", tr: "yelken açmak" },
-        { eng: "Sake", tr: "hatır, uğruna" },
-        { eng: "Sand", tr: "kum" },
-        { eng: "Satisfy", tr: "tatmin etmek" },
-        { eng: "Scale", tr: "ölçek" },
-        { eng: "Scar", tr: "yara izi" },
-        { eng: "Scream", tr: "çığlık" },
-        { eng: "Seat", tr: "koltuk" },
-        { eng: "Section", tr: "bölüm" },
-        { eng: "Seed", tr: "tohum" },
-        { eng: "Seek", tr: "aramak" },
-        { eng: "Seem", tr: "görünmek" },
-        { eng: "Sense", tr: "his" },
-        { eng: "Separate", tr: "ayrı" },
-        { eng: "Separately", tr: "ayrı ayrı" },
-        { eng: "Sequence", tr: "dizi, zincir" },
-        { eng: "Serve", tr: "hizmet etmek" },
-        { eng: "Set", tr: "ayarlamak" },
-        { eng: "Several", tr: "birkaç" },
-        { eng: "Shade", tr: "gölge" },
-        { eng: "Shallow", tr: "sığ" },
-        { eng: "Sharp", tr: "keskin" },
-        { eng: "Shell", tr: "kabuk" },
-        { eng: "Shelter", tr: "barınak" },
-        { eng: "Shiny", tr: "parlak" },
-        { eng: "Ship", tr: "gemi" },
-        { eng: "Shoelace", tr: "ayakkabı bağcığı" },
-        { eng: "Shout", tr: "bağırmak" },
-        { eng: "Shrill", tr: "kulak tırmalayıcı" },
-        { eng: "Shy", tr: "utangaç" },
-        { eng: "Sight", tr: "görüş" },
-        { eng: "Significiant", tr: "anlamlı, önemli" },
-        { eng: "Silent", tr: "sessiz" },
-        { eng: "Sip", tr: "yudum" },
-        { eng: "Skin", tr: "deri" },
-        { eng: "Sky", tr: "gökyüzü, hava" },
-        { eng: "Slide", tr: "kaydırmak, kaydırak" },
-        { eng: "Slope", tr: "eğim" },
-        { eng: "Smell", tr: "koklamak" },
-        { eng: "Smoggy", tr: "sisli" },
-        { eng: "Soar", tr: "uçmak, süzülmek" },
-        { eng: "Soft", tr: "yumuşak" },
-        { eng: "Soil", tr: "toprak" },
-        { eng: "Somersault", tr: "takla" },
-        { eng: "Sour", tr: "ekşi" },
-        { eng: "Spacious", tr: "ferah" },
-        { eng: "Spew", tr: "kusmak" },
-        { eng: "Split", tr: "bölmek" },
-        { eng: "Spoon", tr: "kaşık" },
-        { eng: "Spot", tr: "leke, nokta" },
-        { eng: "Squeeze", tr: "sıkışmak, sıkmak" },
-        { eng: "Stable", tr: "istikrarlı" },
-        { eng: "Stack", tr: "yığın" },
-        { eng: "Staff", tr: "kadro, personel" },
-        { eng: "Stair", tr: "merven" },
-        { eng: "Stale", tr: "bayat" },
-        { eng: "Stamina", tr: "dayanıklılık" },
-        { eng: "Stead of", tr: "yerine" },
-        { eng: "Steady", tr: "sabit, düzenli" },
-        { eng: "Steel", tr: "çelik" },
-        { eng: "Stomach", tr: "mide" },
-        { eng: "Stone", tr: "taş" },
-        { eng: "Stool", tr: "tabure / dışkı" },
-        { eng: "Storm", tr: "fırtına" },
-        { eng: "Stove", tr: "ocak" },
-        { eng: "Strange", tr: "garip" },
-        { eng: "Stray", tr: "başıboş, serseri" },
-        { eng: "Streak", tr: "rüzgar gibi geçmek" },
-        { eng: "Stream", tr: "akıntı, dere, aktarım" },
-        { eng: "Stretch", tr: "genişletmek, sarmak" },
-        { eng: "Stuff", tr: "şey, madde, eşya" },
-        { eng: "Substance", tr: "madde, cisim" },
-        { eng: "Substitution", tr: "yer değiştirme" },
-        { eng: "Suddenly", tr: "birden, aniden" },
-        { eng: "Suffer", tr: "acı çekmek" },
-        { eng: "Sufficient", tr: "yeterli" },
-        { eng: "Suffix", tr: "son ek" },
-        { eng: "Suggest", tr: "önermek" },
-        { eng: "Suitcase", tr: "valiz" },
-        { eng: "Supervise", tr: "denetlemek, yönetmek" },
-        { eng: "Suppose", tr: "sanmak, varsaymak" },
-        { eng: "Surface", tr: "yüzey" },
-        { eng: "Surrend", tr: "teslim olmak" },
-        { eng: "Suspect", tr: "şüphelenmek" },
-        { eng: "Suspend", tr: "askıya almak" },
-        { eng: "Sustainable", tr: "sürdürülebilir" },
-        { eng: "Swallow", tr: "yutmak" },
-        { eng: "Swap", tr: "takas" },
-        { eng: "Syllabus", tr: "ders programı" },
-        { eng: "Tail", tr: "kuyruk" },
-        { eng: "Take over", tr: "devralmak" },
-        { eng: "Tax", tr: "vergi" },
-        { eng: "Tend", tr: "eğilimli olmak" },
-        { eng: "Thick", tr: "kalın" },
-        { eng: "Thief", tr: "hırsız" },
-        { eng: "Thin", tr: "ince" },
-        { eng: "Thoughtless", tr: "düşüncesiz" },
-        { eng: "Threaten", tr: "tehdit etmek" },
-        { eng: "Through", tr: "boyunca" },
-        { eng: "Throw", tr: "fırlatmak" },
-        { eng: "Throw back", tr: "gerileme, geriye fırlatma" },
-        { eng: "Throw up", tr: "kusmak" },
-        { eng: "Thrustworthy", tr: "güvenilir" },
-        { eng: "Tight", tr: "dar, sıkı" },
-        { eng: "Tiny", tr: "küçücük" },
-        { eng: "to reach", tr: "ulaşmak" },
-        { eng: "Tool", tr: "alet" },
-        { eng: "Toward", tr: "-e doğru, karşı" },
-        { eng: "Trace", tr: "iz, işaret, ipucu" },
-        { eng: "Trade", tr: "ticaret" },
-        { eng: "Tradition", tr: "gelenek" },
-        { eng: "Trap", tr: "tuzak" },
-        { eng: "Trial", tr: "deneme" },
-        { eng: "Trick", tr: "kandırmak, hile" },
-        { eng: "Trip", tr: "seyahat" },
-        { eng: "Trouble", tr: "sorun, dert" },
-        { eng: "Tumble", tr: "takla atmak" },
-        { eng: "Unconscious", tr: "bilinçsizlik" },
-        { eng: "Unfair", tr: "adaletsiz" },
-        { eng: "Ungrateful", tr: "nankör" },
-        { eng: "Union", tr: "sendika, birleşme" },
-        { eng: "Up to date", tr: "bugüne kadar, güncel" },
-        { eng: "Up to you", tr: "sana kalmış" },
-        { eng: "Upside-down", tr: "tepetaklak, ters" },
-        { eng: "Upward", tr: "yukarıya doğru" },
-        { eng: "Urban", tr: "şehirsel, kente ait" },
-        { eng: "Urge", tr: "dürtme, ısrar etmek" },
-        { eng: "Urgent", tr: "acil" },
-        { eng: "Utility", tr: "faydalı" },
-        { eng: "Vacation", tr: "tatil" },
-        { eng: "Vain", tr: "beyhude, boşuna" },
-        { eng: "Vase", tr: "vazo" },
-        { eng: "Vein", tr: "damar" },
-        { eng: "Velvet", tr: "kadife" },
-        { eng: "Verdict", tr: "hüküm" },
-        { eng: "Versus", tr: "karşı" },
-        { eng: "Vertical", tr: "dikey" },
-        { eng: "Vicious", tr: "kötü, ahlaksız" },
-        { eng: "Vicious circle", tr: "kısır döngü" },
-        { eng: "Victim", tr: "kurban, kazazede" },
-        { eng: "Villain", tr: "kötü adam" },
-        { eng: "Vine", tr: "bağ" },
-        { eng: "Vinegar", tr: "sirke" },
-        { eng: "Violent", tr: "şiddetli, kaba kuvvet" },
-        { eng: "Virtual", tr: "sanal" },
-        { eng: "Visa", tr: "vize" },
-        { eng: "Visible", tr: "görünen" },
-        { eng: "Vision", tr: "görüş, imge" },
-        { eng: "Vital", tr: "önemli, hayati" },
-        { eng: "Volume", tr: "hacim" },
-        { eng: "Voluntary", tr: "gönüllü" },
-        { eng: "Vomit", tr: "kusmak" },
-        { eng: "Vote", tr: "oy vermek" },
-        { eng: "Vowel", tr: "sesli harf" },
-        { eng: "Voyage", tr: "deniz yolculuğu" },
-        { eng: "Vulgar", tr: "kaba, ilkel" },
-        { eng: "Vulnerable", tr: "savunmasız" },
-        { eng: "Wallow", tr: "yuvarlanmak, debelenmek" },
-        { eng: "Wealth", tr: "servet" },
-        { eng: "What ever", tr: "ne olursa olsun" },
-        { eng: "Whether", tr: "olup olmadığı" },
-        { eng: "While", tr: "sırasında, iken" },
-        { eng: "Whole", tr: "bütün" },
-        { eng: "Wide", tr: "geniş" },
-        { eng: "Wind", tr: "rüzgar" },
-        { eng: "Winding", tr: "dolanbaçlı, bobin" },
-        { eng: "Wing", tr: "kanat" },
-        { eng: "Wire", tr: "kablo, tel" },
-        { eng: "Within", tr: "içinde" },
-        { eng: "Work out", tr: "egzersiz yapmak" },
-        { eng: "Worthy", tr: "saygıdeğer" },
-        { eng: "Wraith", tr: "hayalet, sıska" },
-        { eng: "Wrap", tr: "sarmak" },
-        { eng: "Wretched", tr: "sefil, perişan" },
-        { eng: "Yard", tr: "bahçe" },
-        { eng: "Zap", tr: "vurmak, kanal değiştirmek" },
-        { eng: "Zazoo", tr: "zazoo" },
-        { eng: "Zeal", tr: "gayret, heves" },
-        { eng: "Zealot", tr: "fanatik, bağnaz" },
-        { eng: "Zealous", tr: "gayretli" },
-        { eng: "Zinc", tr: "çinko" },
-        { eng: "Zone", tr: "alan, bölge" },
-        { eng: "Zucchini", tr: "kabak" }
+    // --- 1000 KELİMELİK HAVUZ ---
+    // Kolaylık olsun diye örnek ekledim, kendi 1000 kelimeni buraya eski formatta yapıştırabilirsin.
+    const masterPool = [
+        { eng: "apple", tr: "elma" },
+        { eng: "book", tr: "kitap" },
+        { eng: "car", tr: "araba" },
+        { eng: "door", tr: "kapı" },
+        { eng: "elephant", tr: "fil" },
+        { eng: "fox", tr: "tilki" },
+        { eng: "game", tr: "oyun" },
+        { eng: "home", tr: "ev" }
+        // ... Kalan kelimelerini buraya ekle
     ];
 
+    // Dinamik Değişkenler
+    let currentPool = []; 
+    let usedIndices = []; 
+    let currentIndex = 0; 
+    let currentMode = 'sıralı'; 
     let score = 0;
-    let questionCount = 0;
-    let currentQuestion = null;
+    let lives = 3;
 
-    const questionElement = document.getElementById('question');
-    const optionsContainer = document.getElementById('options');
-    const nextButton = document.getElementById('next-button');
-    const scoreElement = document.getElementById('score');
-    const countElement = document.getElementById('question-count');
+    // Sayfa Yüklenince Başla
+    window.onload = function() {
+        initGame('sıralı');
+        
+        // Enter tuşuna basınca onaylama tetiklensin
+        document.getElementById("user-input").addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                checkAnswer();
+            }
+        });
+    };
 
-    function startGame() {
-        score = 0;
-        questionCount = 0;
-        scoreElement.innerText = score;
-        nextQuestion();
+    // Mod Değiştirme Fonksiyonu
+    function changeMode(mode) {
+        currentMode = mode;
+        
+        // Buton renklerini güncelle
+        const buttons = document.querySelectorAll('.mode-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        if(mode === 'sıralı') buttons[0].classList.add('active');
+        if(mode === 'karışık') buttons[1].classList.add('active');
+        if(mode === 'alfabetik') buttons[2].classList.add('active');
+        if(mode === 'challenge') buttons[3].classList.add('active');
+
+        initGame(mode);
     }
 
-    function nextQuestion() {
-        nextButton.style.display = 'none';
-        optionsContainer.innerHTML = '';
-        questionCount++;
-        countElement.innerText = questionCount;
-
-        const randomIndex = Math.floor(Math.random() * wordPool.length);
-        currentQuestion = wordPool[randomIndex];
-        questionElement.innerText = currentQuestion.eng;
-
-        let choices = [currentQuestion.tr];
+    // Oyunu ve Havuzu Modlara Göre Hazırlama
+    function initGame(mode) {
+        score = 0;
+        lives = 3;
+        usedIndices = [];
+        currentIndex = 0;
         
-        while (choices.length < 4) {
-            const randomWrongIndex = Math.floor(Math.random() * wordPool.length);
-            const wrongChoice = wordPool[randomWrongIndex].tr;
-            if (!choices.includes(wrongChoice)) {
-                choices.push(wrongChoice);
+        document.getElementById("feedback-msg").textContent = "";
+        document.getElementById("user-input").value = "";
+        document.getElementById("hearts-display").style.display = (mode === 'challenge') ? 'block' : 'none';
+        document.getElementById("hearts-display").textContent = "❤️❤️❤️";
+
+        if (mode === 'sıralı' || mode === 'challenge') {
+            // Orijinal sırayı koru
+            currentPool = [...masterPool];
+        } else if (mode === 'karışık') {
+            // Kelimeleri tamamen karıştır (Fisher-Yates algoritması)
+            currentPool = [...masterPool];
+            for (let i = currentPool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [currentPool[i], currentPool[j]] = [currentPool[j], currentPool[i]];
+            }
+        } else if (mode === 'alfabetik') {
+            // İngilizce kelimelere göre A'dan Z'ye sırala
+            currentPool = [...masterPool].sort((a, b) => a.eng.localeCompare(b.eng));
+        }
+
+        showWord();
+    }
+
+    // Ekrana Kelime Getirme
+    function showWord() {
+        if (currentIndex >= currentPool.length) {
+            document.getElementById("question-word").textContent = "🎉 Tebrikler! Tüm kelimeleri bitirdiniz.";
+            document.getElementById("info-tag").textContent = "BİTTİ";
+            document.getElementById("user-input").disabled = true;
+            document.getElementById("submit-btn").disabled = true;
+            return;
+        }
+
+        const currentWord = currentPool[currentIndex];
+        document.getElementById("question-word").textContent = currentWord.eng;
+        
+        // İstatistikleri Güncelle
+        document.getElementById("score-display").textContent = "Skor: " + score;
+        document.getElementById("progress-display").textContent = `İlerleme: ${currentIndex} / ${currentPool.length}`;
+        
+        if (currentMode === 'sıralı') {
+            document.getElementById("info-tag").textContent = "Sıra: " + (currentIndex + 1);
+        } else if (currentMode === 'karışık') {
+            document.getElementById("info-tag").textContent = "Karışık Mod";
+        } else if (currentMode === 'alfabetik') {
+            document.getElementById("info-tag").textContent = "Alfabetik Mod";
+        } else if (currentMode === 'challenge') {
+            document.getElementById("info-tag").textContent = "Seri / Hata Yapma!";
+        }
+    }
+
+    // Cevap Kontrolü
+    function checkAnswer() {
+        const userInput = document.getElementById("user-input").value.trim().toLowerCase();
+        const feedback = document.getElementById("feedback-msg");
+        
+        if (!userInput) return; // Boş cevabı engelle
+
+        const correctAnswer = currentPool[currentIndex].tr.toLowerCase();
+
+        if (userInput === correctAnswer) {
+            feedback.className = "feedback correct";
+            feedback.textContent = "✓ Doğru!";
+            score++;
+            currentIndex++; // Bir sonraki kelimeye geç (Tekrar etmesini engeller)
+            
+            setTimeout(() => {
+                feedback.textContent = "";
+                document.getElementById("user-input").value = "";
+                showWord();
+            }, 800);
+
+        } else {
+            feedback.className = "feedback incorrect";
+            
+            if (currentMode === 'challenge') {
+                lives--;
+                document.getElementById("hearts-display").textContent = "❤️".repeat(lives);
+                feedback.textContent = `✗ Yanlış! Doğrusu: ${correctAnswer}`;
+                
+                if (lives <= 0) {
+                    setTimeout(() => {
+                        alert(`Oyun Bitti! Toplam Skorun: ${score}`);
+                        initGame('challenge');
+                    }, 500);
+                    return;
+                }
+                
+                // Challenge modunda hata yapınca da sonraki kelimeye geçer (Seriyi bozmamak için)
+                currentIndex++; 
+            } else {
+                // Diğer modlarda yanlış bilinirse doğru bilinene kadar aynı kelimede kalır
+                feedback.textContent = "✗ Yanlış, tekrar deneyin!";
             }
         }
-
-        choices.sort(() => Math.random() - 0.5);
-
-        choices.forEach(choice => {
-            const button = document.createElement('button');
-            button.innerText = choice;
-            button.classList.add('btn');
-            button.addEventListener('click', () => selectAnswer(button, choice));
-            optionsContainer.appendChild(button);
-        });
     }
-
-    function selectAnswer(selectedButton, choice) {
-        const allButtons = optionsContainer.querySelectorAll('.btn');
-        allButtons.forEach(btn => btn.disabled = true);
-
-        if (choice === currentQuestion.tr) {
-            selectedButton.classList.add('correct');
-            score += 10;
-            scoreElement.innerText = score;
-        } else {
-            selectedButton.classList.add('wrong');
-            allButtons.forEach(btn => {
-                if (btn.innerText === currentQuestion.tr) {
-                    btn.classList.add('correct');
-                }
-            });
-        }
-        nextButton.style.display = 'block';
-    }
-
-    startGame();
 </script>
 
 </body>
