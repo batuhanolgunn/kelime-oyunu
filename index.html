@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelime Oyunu v2.0</title>
+    <title>Kelime Oyunu v2.5</title>
     <style>
         :root {
             --bg-color: #121214;
@@ -33,20 +33,17 @@
         .word-num { font-size: 13px; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
         .word-text { font-size: 32px; font-weight: bold; word-break: break-word; }
         
-        /* Cevap ve Kontrol */
+        /* Cevap Girişi */
         .input-group { display: flex; flex-direction: column; gap: 12px; }
         input[type="text"] { width: 100%; padding: 16px; border-radius: 12px; border: 2px solid #3f4656; background: #222733; color: white; font-size: 18px; text-align: center; outline: none; transition: border-color 0.2s; }
         input[type="text"]:focus { border-color: #3742fa; }
-        
-        .action-btn { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s; width: 100%; }
-        .action-btn:hover { background: var(--accent-hover); }
         
         /* Bildirimler */
         .feedback { margin-top: 15px; font-weight: bold; font-size: 16px; min-height: 24px; }
         .correct { color: #2ed573; }
         .incorrect { color: #ff4757; }
         
-        /* Can Barı (Challenge Modu İçin) */
+        /* Can Barı */
         .hearts { font-size: 18px; margin-bottom: 10px; color: #ff4757; display: none; }
     </style>
 </head>
@@ -76,53 +73,28 @@
     </div>
 
     <div class="input-group">
-        <input type="text" id="user-input" placeholder="Anlamını yazın..." autocomplete="off" autofocus>
-        <button class="action-btn" id="submit-btn" onclick="checkAnswer()">Onayla</button>
+        <!-- Otomatik kontrol için input her değiştiğinde checkAnswer tetiklenecek -->
+        <input type="text" id="user-input" placeholder="Anlamını yazmaya başlayın..." autocomplete="off" autofocus oninput="checkAnswer()">
     </div>
 
     <div class="feedback" id="feedback-msg"></div>
 </div>
 
 <script>
-    // --- 1000 KELİMELİK HAVUZ ---
-    // Kolaylık olsun diye örnek ekledim, kendi 1000 kelimeni buraya eski formatta yapıştırabilirsin.
-    const masterPool = [
-        { eng: "apple", tr: "elma" },
-        { eng: "book", tr: "kitap" },
-        { eng: "car", tr: "araba" },
-        { eng: "door", tr: "kapı" },
-        { eng: "elephant", tr: "fil" },
-        { eng: "fox", tr: "tilki" },
-        { eng: "game", tr: "oyun" },
-        { eng: "home", tr: "ev" }
-        // ... Kalan kelimelerini buraya ekle
-    ];
-
     // Dinamik Değişkenler
     let currentPool = []; 
-    let usedIndices = []; 
     let currentIndex = 0; 
     let currentMode = 'sıralı'; 
     let score = 0;
     let lives = 3;
+    let lockInput = false; // Geçiş esnasında yazmayı engellemek için
 
-    // Sayfa Yüklenince Başla
     window.onload = function() {
         initGame('sıralı');
-        
-        // Enter tuşuna basınca onaylama tetiklensin
-        document.getElementById("user-input").addEventListener("keyup", function(event) {
-            if (event.key === "Enter") {
-                checkAnswer();
-            }
-        });
     };
 
-    // Mod Değiştirme Fonksiyonu
     function changeMode(mode) {
         currentMode = mode;
-        
-        // Buton renklerini güncelle
         const buttons = document.querySelectorAll('.mode-btn');
         buttons.forEach(btn => btn.classList.remove('active'));
         
@@ -134,50 +106,44 @@
         initGame(mode);
     }
 
-    // Oyunu ve Havuzu Modlara Göre Hazırlama
     function initGame(mode) {
         score = 0;
         lives = 3;
-        usedIndices = [];
         currentIndex = 0;
+        lockInput = false;
         
         document.getElementById("feedback-msg").textContent = "";
         document.getElementById("user-input").value = "";
+        document.getElementById("user-input").disabled = false;
         document.getElementById("hearts-display").style.display = (mode === 'challenge') ? 'block' : 'none';
         document.getElementById("hearts-display").textContent = "❤️❤️❤️";
 
         if (mode === 'sıralı' || mode === 'challenge') {
-            // Orijinal sırayı koru
             currentPool = [...masterPool];
         } else if (mode === 'karışık') {
-            // Kelimeleri tamamen karıştır (Fisher-Yates algoritması)
             currentPool = [...masterPool];
             for (let i = currentPool.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [currentPool[i], currentPool[j]] = [currentPool[j], currentPool[i]];
             }
         } else if (mode === 'alfabetik') {
-            // İngilizce kelimelere göre A'dan Z'ye sırala
-            currentPool = [...masterPool].sort((a, b) => a.eng.localeCompare(b.eng));
+            currentPool = [...masterPool].sort((a, b) => a.eng.localeCompare(b.eng, 'en'));
         }
 
         showWord();
     }
 
-    // Ekrana Kelime Getirme
     function showWord() {
         if (currentIndex >= currentPool.length) {
-            document.getElementById("question-word").textContent = "🎉 Tebrikler! Tüm kelimeleri bitirdiniz.";
-            document.getElementById("info-tag").textContent = "BİTTİ";
+            document.getElementById("question-word").textContent = "🎉 Harika! Tüm kelimeler bitti.";
+            document.getElementById("info-tag").textContent = "TEBRİKLER";
             document.getElementById("user-input").disabled = true;
-            document.getElementById("submit-btn").disabled = true;
             return;
         }
 
         const currentWord = currentPool[currentIndex];
         document.getElementById("question-word").textContent = currentWord.eng;
         
-        // İstatistikleri Güncelle
         document.getElementById("score-display").textContent = "Skor: " + score;
         document.getElementById("progress-display").textContent = `İlerleme: ${currentIndex} / ${currentPool.length}`;
         
@@ -188,55 +154,1127 @@
         } else if (currentMode === 'alfabetik') {
             document.getElementById("info-tag").textContent = "Alfabetik Mod";
         } else if (currentMode === 'challenge') {
-            document.getElementById("info-tag").textContent = "Seri / Hata Yapma!";
+            document.getElementById("info-tag").textContent = "Seri / Kalan Can: " + lives;
         }
+        
+        lockInput = false;
+        document.getElementById("user-input").focus();
     }
 
-    // Cevap Kontrolü
+    // OTOMATİK CEVAP KONTROLÜ
     function checkAnswer() {
+        if (lockInput) return; // Geçiş sürecindeyse işlem yapma
+
         const userInput = document.getElementById("user-input").value.trim().toLowerCase();
         const feedback = document.getElementById("feedback-msg");
         
-        if (!userInput) return; // Boş cevabı engelle
+        if (!userInput) return;
 
         const correctAnswer = currentPool[currentIndex].tr.toLowerCase();
 
+        // Eğer kullanıcı kelimeyi TAM ve DOĞRU yazdıysa anında tetiklenir
         if (userInput === correctAnswer) {
+            lockInput = true; // Yeni kelime gelene kadar girdiyi kilitle
             feedback.className = "feedback correct";
             feedback.textContent = "✓ Doğru!";
             score++;
-            currentIndex++; // Bir sonraki kelimeye geç (Tekrar etmesini engeller)
+            currentIndex++;
             
+            // Yarım saniye sonra kelimeyi değiştir ve kutuyu temizle
             setTimeout(() => {
                 feedback.textContent = "";
                 document.getElementById("user-input").value = "";
                 showWord();
-            }, 800);
-
-        } else {
+            }, 500);
+        } 
+        // Yanlış yazıyorsa ama Challenge modundaysa ve harf sayısı doğru cevaba ulaştıysa (Hata tetikleme)
+        else if (currentMode === 'challenge' && userInput.length >= correctAnswer.length) {
+            lockInput = true;
             feedback.className = "feedback incorrect";
-            
-            if (currentMode === 'challenge') {
-                lives--;
-                document.getElementById("hearts-display").textContent = "❤️".repeat(lives);
-                feedback.textContent = `✗ Yanlış! Doğrusu: ${correctAnswer}`;
-                
-                if (lives <= 0) {
-                    setTimeout(() => {
-                        alert(`Oyun Bitti! Toplam Skorun: ${score}`);
-                        initGame('challenge');
-                    }, 500);
-                    return;
-                }
-                
-                // Challenge modunda hata yapınca da sonraki kelimeye geçer (Seriyi bozmamak için)
-                currentIndex++; 
-            } else {
-                // Diğer modlarda yanlış bilinirse doğru bilinene kadar aynı kelimede kalır
-                feedback.textContent = "✗ Yanlış, tekrar deneyin!";
+            feedback.textContent = `✗ Yanlış! Doğrusu: ${correctAnswer}`;
+            lives--;
+            document.getElementById("hearts-display").textContent = "❤️".repeat(lives);
+            currentIndex++;
+
+            if (lives <= 0) {
+                setTimeout(() => {
+                    alert(`Oyun Bitti! Skorun: ${score}`);
+                    initGame('challenge');
+                }, 500);
+                return;
             }
+
+            setTimeout(() => {
+                feedback.textContent = "";
+                document.getElementById("user-input").value = "";
+                showWord();
+            }, 1000);
         }
     }
+
+    // --- Abuse – suistimal etmek
+Abyss - Uçurum
+Accelerate - hızlandırmak
+Accompany – eşlik etmek
+Accurate - kesin
+Accuse - suçlamak
+Admire – hayran olmak
+Admit – itiraf etmek
+Affirmative - olumlu
+Aggrandize – büyütmek
+Aggrandize - Yüceltmek
+Ahead - ileride
+Aid – yardım etmek
+Allocate – tahsis etmek
+Ambitious - hırslı
+Ancient - antik
+Anger - öfkeli
+Annoy – rahatsız edici
+Anticipate - ummak
+Anyway – her neyse
+Apart - ayrı
+Apiary - Arı kovanı
+Apparent - görünür
+Appeal - başvurmak
+Appear – belli olmak
+Apple pie - Elmalı Turta
+Appoint - atamak
+Appreciate – değerini arttırmak
+Appropriate – uygun münasip
+Arrest - tutuklamak
+Arrogant - kibirli
+Artichoke - Enginar
+Ascent - Yükseliş
+Aspect - görünüş
+Assert – ileri sürmek
+Assess – değer biçmek
+Asset - varlık
+Assign - atamak
+Associate – ilişkisi olmak
+Assume – farz etmek
+Assume – farz etmek
+Assure – garanti etmek
+Attach - eklemek
+Attact - cezbetmek
+Attain - Ulaşmak, elde etmek
+Attainable - Ulaşılabilirlik
+Attempt – girişimde bulunmak
+Attractive – göz alıcı
+Attribute – bağlamak atfetmek
+Audience - kitle
+Awful - berbat
+Backpack – sırt çantası
+Bald - kel
+Barely – zar zor
+Bear - Taşımak, katlanmak
+Beat - vurmak
+Beehive - Arı kovanı
+Belief – inanç
+Bellow - Feryat
+Belong – ait olmak
+Below - aşağısında
+Belt - kemer
+Benefit - fayda
+Benefit – fayda 
+Betray - İhanet etmek
+Beyond - ötesinde
+Bill - fatura
+Bill - fatura
+Bite – ısırmak lokma
+Bitter - acı
+Blame - ayıplamak
+Blame – ayıplamak suçlamak
+Blank - boş
+Blanket - battaniye
+Blind - kör
+Blow – Üflemek
+Bolt - Sürgü, civata
+Border – sınır kenar
+Borrow – ödünç almak
+Borrow – ödünç almak
+Bowl - Kase, çanak, tas
+Brand - marka
+Brave - cesur
+Brawn - Kas gücü
+Breast - göğüs
+Breeze - Esinti
+Brick - Tuğla
+Brief - özet
+Bright - parlak
+Brilliant - zeki
+Bring up - Yetiştirmek, büyütmek
+Broad - geniş
+Bug - hata
+Bullshit - Saçmalık
+Butcher - Kasap
+Cabbage - lahana
+Cabinet - Dolap, kabin
+Cage - kafes
+Candidate - aday
+Can't stand - Dayanamamak
+Capable - yetkin
+Captive - esir
+Cast - Döküm, alçı, kalıp
+Cast Away - Adada mahsur kalmak
+Catch up - Yetişmek
+Census – nüfus sayımı
+Cesspool - Lağım çukuru
+Charm - sevimli
+Chase - Takip etmek
+Cheer / Solace - Teselli etmek
+Chest - göğüs
+Chest - Göğüs
+Chin - çene
+Chop - kesmek
+Chubby - hantal
+Church - kilise
+Cilium - Kirpik
+Cite – alıntı yapmak
+Claim – iddia etmek
+Claw - Pençe
+Clay - çamur
+Clerk – katip yazıcı
+Cliff - uçurum
+Cliff - uçurum
+Cling - yapışmak
+Clue - ipucu
+Clue - İpucu
+Coarse – kaba kalın kalitesiz
+Coefficient - katsayı
+Coherent - tutarlı
+Collapse - çökmek
+Collide - çarpışmak
+Column - sütun
+Commercial - ticari
+Commitmend - vaat
+Compare - kıyaslamak
+Compassion - merhamet
+Compatible - uygun
+Compensating - Telafi edici
+Competitor - Yarışmacı, Rakip
+Complain – şikayet etmek
+Compliant - itaatkar
+Compose - oluşturmak
+Compound - birleşik
+Compute - Hesaplama
+Conceal - gizlemek
+Concern - endişe
+Concern - endişe
+Condition - şart
+Confinement - Kapatılma, hapsedilme
+Conflict - zıtlık
+Confuse – kafası karışmak
+Confusion - karışıklık
+Conservation - koruma
+Consider – dikkate almak
+Consider – dikkate almak
+Consist - Meydana gelmek
+Consistent - tutarlı
+Console - Avutmak
+Consonant - Sessiz harf
+Conspiracy - komplo
+Contribute – katkı sağlamak
+Controversial - tartışmalı
+Conventional - geleneksel
+Convert - Dönüştürmek
+Convince - İkna etmek
+Corporate - kurumsal
+Correspond - Karşılık gelmek, yazışmak
+Corrode - Paslanmak, aşındırmak
+Corrosion - Paslanmak
+Counter – karşı koymak
+Courage - cesaret
+Court - mahkeme
+Crack - bozuk
+Craft - zanaat
+Crash - kaza
+Crooked – eğri
+Crow - karga
+Crowded - Kalabalık
+Cruel - acımasız
+Cumin - Kimyon
+Curiousity - meraklı
+Curve - Eğri
+Cute - sevimli
+Cynical - eleştirel
+Daring - cesur
+Dawn - şafak
+Deaf - sağır
+Debate - müzakere
+Debt - borç
+Decay - çürümek
+Deceive - Aldatmak
+Deck - destek
+Defect – defo özür
+Delegate - devretmek
+Deliberate – kasıtlı 
+Delicate - Nazik
+Delightful - hoş
+Deliver – teslim etmek
+Delusion - aldatma
+Demolish - yıkmak
+Demonstrate - göstermek
+Dent - çöküntü
+Deny – inkar etmek
+Deprive – yoksun bırakmak
+Derated - Düşürüldü, değeri
+Deserve - Hak etmek
+Desire - Arzu
+Desperately - umutsuzca
+Despite - aksine
+Destiny - kader
+Detect – tespit etmek
+Devote – adanmış olmak
+Devoted - Sadık
+Dice - Zar, oyundaki zar
+Differ - farklı
+Dilemma - ikilem
+Discard - At
+Disease - hastalık
+Disgrace – ayıp utanç
+Disrupt - bozmak
+Distance - mesafe
+Distract - Dikkatini dağıtmak
+District – semt , bölge
+Diverse - türlü
+Divorce - boşanmak
+Dizziness – baş dönmesi
+Dull - donuk
+Dump - Çöplük
+Duration - süre
+During - sırasında
+During - sırasında
+East - doğu
+Educate - eğitmek
+Elaborate - detaylandırmak
+Elegant - Zarif, şık
+Embroider – oyalamak
+Emphasis - vurgu
+Empty - boş
+Encounter – karşılaşmak
+Encourage - cesaretlendirmek
+Endure - Dayanmak, katlanmak
+Enemy - Düşman
+Enforce - uygulamak
+Enhance - geliştirmek
+Enormous - kocaman
+Enquiry - soruşturma
+Ensure - sağlamak
+Enthusiastic - coşkulu
+Entire - tümü
+Envelop - Örtmek, kuşatmak
+Envelope - zarf
+Escape - Kaçmak, kaçış, kurtulmak
+Essential - temel
+Estimate – tahmin etmek
+Evaluate - değerlendirmek
+Even - bile
+Event - olay
+Eventually - nihayet
+Evil - Fena, zararlı, uğursuz
+Exaggerate - Abartmak
+Exaggerate -abartmak
+Examine – incelemek , sorgulamak
+Except – hariç tutmak
+Exchange - Değişme, takas
+Excise - Vergi, kesmek
+Excised - Kesilmiş
+Exclude – hariç tutmak
+Exclusive - Hariç tutulan
+Exclusive - Özel, seçkin
+Excuse - Mazeret, bahane
+Execute - Uygulamak
+Exile - sürgün
+Expect - beklemek
+Express - İfade etmek
+Extend - uzatmak
+Eyebrow - Kaş
+Eyelash - Kirpik
+Eyelid - Göz kapağı
+Fabric - kumaş
+Facilitate - kolaylaştırmak
+Facility – tesis , kolaylık
+Fade – rengi solmak
+Faint - bayılmak
+Faint – sönük bayılmak
+Faith - İnanç, iman, din
+Faithful - Sadık
+Fault - Hata
+Favorable - olumlu
+Feasible - mümkün
+Feces - dışkı
+Fell - Düşmüş, merhametsiz
+Fence - Çit
+Fence – çit , parmaklık
+Fertile - bereketli
+Fever - ateş
+Fierce – şiddetli , hiddetli
+Filthy - pis
+Flame - alev
+Flat - daire
+Flat - Düz, yassı
+Flavor – tat , lezzet
+Flaw - kusur
+Flee – kaçmak , kaçırmak
+Flimsy – dayanıksız , çürük
+Flu - grip
+Fluent - Akıcı
+Forehead - Alın
+Fork - Çatal
+Fortunate - minnettar
+Fortunately – neyse ki
+Fortune - servet
+Forward - ileri
+Fracture - Kırık
+Frame - Çerçeve, yapı
+Friction - Sürtünme
+ Frog - kurbağa
+Fudge – geçiştirmek , uydurmak
+Fugitive - Firari
+Fugitive - kaçak
+Fulfill – tatmin etmek
+Fund - fonlamak
+Fur - kürk
+Furniture - Mobilya
+Garbage - Çöp
+Gender - cinsiyet
+Generate - Oluşturmak, üretmek
+Genious - dahi
+Genuine – hakiki , gerçek
+Glad – memnun
+Gleaming - parlamak
+Glide - Süzülmek
+Glove – eldiven
+Glow – parıltı
+Gorgeous - Muhteşem
+Gradually – git gide
+Grass – çimen , ot
+Gratefull – minnettar
+Greasy - yağlı
+Grenade – el bombası
+Gripping - Sürükleyici
+Groom – damat
+Grow – büyümek
+Grow up - Büyümek, boy atmak
+Grumpy - Huysuz
+Guard – koruma
+Gulp - Yudum, yutmakla yutma
+Handle - halletmek
+Handy – kullanışlı
+Hang – asmak
+Harbor – liman
+Haven - Sığınak
+Hawk – şahin
+Heaven - cennet
+Herb – bitki , ot
+Hesitate – tereddüt etmek
+Hidden - gizlemek
+Hide - Saklamak, deri, post
+Hill – tepe
+Hinder  - engellemek
+Hint - İpucu
+Hive - Kovan
+Hollow - çukur
+Honor – onur
+Hook - kanca
+Horizon - Ufuk
+Horizontal - Yatay
+Howl – uluma
+Hushed - sessiz
+Imitate - Taklit Etmek
+Import - İçe Aktarmak, İthalat
+Impulsive - İtici, Dürtüsel
+Incline - Eğim
+Inflate - Şişirmek
+Ingest - Yemek, yutmak
+Ingredient - Bileşen
+Ingredients - İçindekiler, malzemeler
+Insect - Böcek
+Insert - Eklemek
+Inserted - Yerleştirildi, eklenmek, sokmak
+Instead - Yerine
+Instruction - Talimat
+Integument - Deri, kabuk
+Intend - Niyet Etmek
+Interior - İç mekan
+Internal - Dahili
+Intersection - Kesişim
+Interval - Aralık
+Intestine - Bağırsak
+Intrench - İşini Sağlama Almak, Siper
+Introduce - Tanıtmak, Tanıştırmak
+Introvert - İçe kapanık
+Invest - Yatırım Yapmak
+Investment - Yatırım
+Inward - İçe Doğru
+Issue - Konu, sorun, mesele
+İdentical – özdeş
+İdentify – tanımlamak
+İllustrate - resimlendirmek
+İmmediate - ani
+İmmediately - aniden
+İmpact - darbe
+İmplement - uygulamak
+İmpolite - kaba
+İnclude – içermek , katmak
+İndividual - bireysel
+İnhale – nefes almak , içine çekmek
+İnheritance – miras
+İnquisitive – meraklı
+İnsect – böcek
+İnspect - incelemek , kontrol etmek
+İnspire – ilham vermek
+İnspire – ilham vermek
+İnstead - yerine
+İnsurance - sigorta
+İntelligent - zeki
+İntense - yoğun
+İnternal - içsel
+İnterpret - yorumlamak
+İnterrupt – yarıda kesmek
+İnterrupt – yarıda kesmek
+İnvade – istila etmek
+İnvasion – saldırı , istila
+İnvincible – yenilmez
+İnvisible – görünmez
+İnvolved – karmaşık
+İronic – alaycı
+Jacket – ceket
+Jail - Hapis
+Jam – reçel sıkışıklık
+Jar – kavanoz
+Jerk - çiş
+Jewelry -takı
+Judge - yargılamak
+Junk – ıvır zıvır
+Kennel - Köpek kulübesi
+Kidnap - Kaçırmak
+Kidnap – zorla kaçırmak
+Kidney - Böbrek
+Kidney – böbrek
+Kin – aile , akraba
+Knee – diz
+Knight – silahşör , şövalye
+Knob – takmak , tutacak
+Knot – düğüm
+Knowledge – bilgi
+Label - etiket
+Labor – elle yapılan zor iş , iş gücü
+Lack – eksiklik
+Ladle – kepçe (yemek)
+Lamb – kuzu koyun eti
+Lamppost – sokak lambası
+Lampshade - abajur
+Land – kara , arazi
+Landscape - manzara
+Lane – dar yol , şerit
+Lash – kamçı , hızlı sallamak
+Lash – Kirpik
+Laundry – yıkanacak çamaşır
+Lay – yatmak
+Leaf – yaprak
+Leak – akıntı , sızmak
+Leak - Sızıntı, kaçak
+Lean – yaslanmak
+Lean - zayıflamak
+Lease – belli zaman için kiralama
+Leather – deri
+Leather - Deri, meşin
+Legacy – miras
+Lend – ödünç vermek
+Lettuce – salata , kıvırcık
+Lever - kaldıraç
+Liar - yalancı
+Liberty – serbest olmak
+Lick - yalamak
+Lid - kapak
+Line - hat
+Link – birleştirmek
+Lip – dudak
+Liquidate – tasfiye etmek
+Literature - edebiyat
+Litter – çöp , dağınıklık
+Liver - karaciğer
+Liver - Karaciğer
+Loaf – bütün ekmek , vakti boşa geçirmek
+Loan - kredi
+Lobster - ıstakoz
+Locate – kurmak , yerleştirmek
+Look Jacked - Kaslı görünmek
+Loose – bol , bağsız
+Lorry - kamyon
+Loss – kayıp zarar
+Lot – mülk
+Loyal - sadık
+Loyal - Sadık, vefalı
+Luggage – valiz , yük
+Lung - akciğer
+Lungs - Akciğer
+Luxury - lüks
+Mad - deli
+Magical - büyüleyici
+Magnificient - görkemli
+Magnify – büyütmek
+Magnifying glass – büyüteç
+Magrificent – ihtişam
+Maid – kadın hizmetçi
+Maintain - sürdürmek
+Maintenance – bakım 
+Maniac – manyak
+Manner – tavır , görgü
+Manufacture – üretmek
+Margin – marj katkı
+Mark – işaret , işaretlemek
+Martial - savaşçı
+Marvelous – şahane , harika
+Massacre – katliam
+Massive – çok büyük , ağır
+Mat – hasır , paspas
+Mate – arkadaş
+Matter – mesele , önemli olmak
+Mattress – yatak , sedir
+Mature - olgun
+Mayor – belediye başkanı
+Meadow – çayır , mera
+Meal - yemek
+Means – stil , yol , yardım , para
+Meantime – bu arada
+Meanwhile – aynı anda
+Melon - kavun
+Melt - erimek
+Membrane - Zar, örtü
+Memorable - unutulmayacak
+Memorandum – not
+Memorial – anıt
+Memorize - ezberlemek
+Mend – tamir etmek
+Mention - bahsetmek
+Merchant - tüccar
+Merciful - merhametli
+Mercy - merhamet
+Mere – sadece , yalnızca
+Merely – sadece , ancak
+Merge , birleşmek kaybolma
+Merit – hak etmek , değmek
+Merry - mutlu
+Mess – kargaşa , dağınıklık
+Mice - fareler
+Mild – hafif , yumuşak - ılık
+Millet – darı
+Mince – kıyma et
+Mine – benim , mayın , maden ocağı
+Minister – bakan , büyükelçi
+Miracle – mucize
+Miser – cimri
+Miserable – sefil
+Mislay – nereye koyduğunu unutmak
+Mitigate - hafifletmek
+Mobisture – nem
+Moderate - ılımlı
+Modest – alçak gönüllü
+Mole – köstebek , vücuttaki ben
+Monument – anıt
+Mood – mizaç , ruh hali
+Mortgage - ipotek
+Mosquite – sivrisinek
+Moss – yosun
+Motional - hareketli
+Mud - çamur
+Mushroom – mantar
+Mustard – hardal
+Mutual – iki taraflı , müşterek
+Nail - Tırnak
+Napkin – peçete
+Narrate  - anlatmak , söylemek
+Narrow - dar
+Narrow – dar
+Nasty – kötü edepsiz
+Nasty – pis , kötü kokulu
+Nation – ulus
+Native – yerli
+Naughty – yaramaz
+Neck – boyun
+Necklase – kolye
+Needle – iğne , şiş
+Negative – görüşmek , müzakere
+Neither … Nor … - ne o ne diğeri
+Nemesis - Düşman
+Nephew – erkek yeğen
+Nest – yuva , kuş yuvası
+Nevertheless - buna rağmen , hala , ama
+Niece – kız yeğen
+Nightmare – kabus
+Noble – soylu
+Nominate – aday göstermek
+Nominate – kabus
+Nonsense – saçmalık
+Nose – burun
+Notice – duyuru
+Novel – roman
+Nowadays - Bugünlerde
+Nude – çıplak
+Nuisance – sıkıntı , dert
+Oak – meşe
+Obey – itaat etmek
+Object – itiraz etmek
+Obligation - zorunluluk
+Oblige - zorunluluk
+Observe - gözlemlemek
+Obstacle - engel
+Obtain – elde etmek
+Obvious - Aşikar
+Occupation - Meslek, İşgal
+Occur - Meydana gelmek
+Offend - Kızdırmak, İncitmek (alındırmak)
+Offer - Teklif Etmek
+Opponent - Rakip
+Orbit - Yörünge
+Order - Emir, Sipariş, Düzen, Sıra
+Ordinary - sıradan
+Oven - Fırın
+Overcome - Üstesinden gelmek
+Overdo - Abartmak
+Overdo – abartmak
+Oversee - denetlemek
+Owe - Borçlu olmak
+Owernship - mülkiyet
+Owl - Baykuş
+Own - Sahip olmak
+Oyster - İstiridye
+Pain - Acı, Ağrı
+Pair - Çift
+Pair - Çift
+Pale - Soluk, Solgun
+Pan - Tava, tencere
+Paradise - Cennet
+Parliament - parlamento
+Parrot - Papağan
+Participant - katılımcı
+Participate - Birlikte çalışma, katılma
+Particular - Yalnız, Özel, Titiz
+Passion - Tutku
+Path - Patika
+Pathetic - Acınası
+Patience - Sabır
+Patience - Sabır
+Pea - Bezelye
+Peace - Barış
+Peanut - Yer fıstığı
+Pear - Armut
+Pearl - İnci
+Peasant - Çiftçi, köylü, kadın
+Peculiar - Garip
+Pedestrian - Yaya giden
+Pee - çiş
+Peel - Kabuk soymak
+Pelt - Post
+Pension - Emekli maaşı
+Pepper - Biber
+Perform - Çalışmak, Uygulamak
+Perhabs - belki
+Permanent - kalıcı
+Permission - İzin
+Permit - İzin vermek, İzin kağıdı
+Persuade - İkna etmek
+Persuade - İkna etmek
+Pessimist - Kötümser
+Phantom – hayalet hayali
+Pick - Seçmek
+Pick up – Toplamak
+Pickle – Turşu
+Pie - Pasta, Turta
+Pie - Turta
+Piece - Parça
+Piece – parça
+Pig - Domuz
+Pigeon - Güvercin
+Pile - yığın
+Pill - Hap
+Pillow - Yastık
+Pimple - Sivilce
+Pincers - Kerpeten, kıskaç
+Pinch - Çimdiklemek, sıkıştırmak
+Pine - Çam
+Pineapple - Ananas
+Pioneer - Öncü
+Pity - acımak
+Plain - Açık, ortada, düz
+Plate - Tabak
+Pleasant - hoş
+Pleasant - Keyifli, zevkli
+Pleasure - Zevk
+Plot - planlamak
+Plug - Fiş, tıkaç
+Poem - Şiir
+Poet - Şair
+Poison - Zehir
+Polish - Parlatmak
+Pollute – çevre kirliliği
+Port - Liman
+Possess - Sahip olmak
+Postage - Posta ücreti
+Postpone - Ertelenmek
+Poverty - Yoksulluk
+Powder - Toz, pudra
+Praise - Övmek
+Praise – övmek
+Pray - Dua etmek
+Preach - Vaaz vermek
+Precious - değerli
+Precious - Değerli
+Precise - kesin
+Precise - Kesin
+Precision - Kesinlik, hassas
+Predict - Tahmin etmek
+Pregnant - hamile
+Prejudice - Önyargı
+Prescription - Reçete
+Presence - Varlık
+Present - Burada, mevcut, şimdiki, armağan
+Preserve - Korumak, konserve yapmak
+Pretend – numara yapmak
+Prevail - Hakim olmak
+Prevent - önlemek
+Previous – öncesi
+Price - Fiyat
+Pride - Onur, gurur
+Priest - Rahip
+Primitive - İlkel, basit, modası geçmiş
+Prince - Prens
+Principle - ilke
+Priority - öncelik
+Prison - Hapis
+Prisoner - Mahkum
+Privilege - İmtiyaz
+Prize - Ödül
+Produce - Üretmek
+Product - Ürün
+Profession - Meslek
+Progress - Gelişme
+Prohibit - Yasaklamak
+Promote - Terfi etme
+Proof - Kanıt
+Propeller - Pervane
+Property - Mal, mülk, eşya
+Proportion - Orantı
+Propose - önermek
+Proud - Gururlu
+Prove - Kanıtlamak
+Provide - Sağlamak
+Publish - Basım, yayın
+Puke - Kusmak
+Pull up - Aracı durdurmak
+Pullover - Kazak, arabayı durdurmak
+Pumpkin - Kabak
+Punctual - Tam zamanında
+Punish - Cezalandırmak
+Purchase – satın almak
+Pure - Saf
+Pure - Saf, temiz
+Pursuit - Kovalama
+Quaint – tuhaf antika
+Qualification - nitelik
+Qualify - nitelendirmek
+Quantify - ölçmek
+Quantity - miktar
+Quarrel - Tartışmak, atışmak
+Quest – aramak görev bulmak
+Queue - Sıra, kuyruk
+Quick - Hızlı, çabuk, hazır, keskin
+Quiet - Sessiz, sakin, huzurlu
+Quite - Hemen hemen, yaklaşık
+Raise - Yükseltmek, zam yapmak
+Rapid - Çabuk, hızlı
+Rare - nadir
+Raspy – kulak tırmalayıcı
+Rat - fare
+Rated - Değerlendirilmiş
+Raw – ham çiğ
+Razor - Ustura, tıraş makinesi
+Reach - Ulaşmak, erişmek
+Realize - Fark etmek
+Realize - gerçekleştirmek
+Reasonable - Makul
+Recall - Anımsamak
+Receipt - Makbuz
+Recent - Yakın zamanda olan
+Reception - Resmi davet, resepsiyon
+Recipe - Yemek tarifi
+Recognize - Tanımak
+Recommend - Tavsiye etmek
+Recommend – tavsiye etmek
+Recover - İyileşmek, kaybedilen eşyayı bulmak
+Redemption - Kefaret
+Reduce - azaltmak
+Reduce - Azaltmak
+Reflect - yansıtmak
+Refrigerator - Buzdolabı
+Refugee - Kazazede
+Regard - Dikkat, ilgili
+Region - Bölge
+Region -bölge
+Regret - Pişman olmak
+Regulation - Yönetmelik
+Reject - Reddetmek
+Related - ilgili
+Relation - İlişki, akrabalık
+Relationship - İlişki
+Relative - Akraba
+Release - Serbest bırakmak
+Relevant - ilgili
+Relevant - İlgili
+Reliable - güvenilir
+Relief - Rahatlama
+Relieve - Uzaklaştırmak
+Religion - Din
+Religion - inanç
+Reluctant - İsteksiz
+Remain - Geriye kalmak
+Remark - açıklamak
+Remind - Anımsatmak
+Repair - Onarmak
+Replace - Yerleştirmek
+Represent - Temsil etmek
+Reputation - İtibar, ün
+Request - Rica etmek
+Request – rica talep etmek
+Require - Gerekmek
+Rescue - Kurtarmak
+Resent - Hoşlanmamak, içerlemek
+Resident - İkamet eden kişi
+Resign - İstifa etmek
+Resist - Karşı koymak
+Respond - Cevap vermek
+Restrict - Sınırlamak
+Revenge - İntikam
+Revise - Revize
+Revoulution - devrim
+Revover - devrimci
+Rib - Kaburga
+Rib Cage - Göğüs kafesi
+Ribbon - Kurdele, şerit
+Rid - kurtulmak
+Ridiculous - Gülünç, saçma
+Rifle - Tüfek
+Ring - Yüzük, halka
+Ripe - olgun
+Ripe - Olgun, ham olmayan
+Rival - Rakip
+Robber - hırsız
+Rolled - Yuvarlanmak
+Roof - Çatı
+Rope - Halat, ip
+Rough - Kaba
+Row - sıra
+Royal - Asil, kraliyet
+Rubbish - Çöp, saçma
+Rubbish - Çöp, saçmalık
+Rude – kaba saygısız
+Ruin – Harabe
+Rumble - Gürlemek
+Runaway - Kaçak, kaçmak
+Rush - Çabuk davranmak
+Rust - Pas
+Sacrifice - fedakarlık
+Sail - Yelken açmak
+Sake - Hatır
+Sand - Kum
+Satisfy – tatmin etmek
+Scale - ölçek
+Scar - Yara izi
+Scream - Çığlık
+Seat - Koltuk
+Section - Bölüm
+Seed - Tohum
+Seek - aramak
+Seem - Görünmek
+Sense - His
+Separate - Ayrı
+Separately - Ayrı ayrı
+Sequence – dizi zincir
+Serve - Hizmet etmek
+Set - Ayarlamak
+Several - Birkaç
+Shade - Gölge
+Shallow - sığ
+Sharp - Keskin
+Shell - Kabuk
+Shelter - Barınak
+Shiny - parlak
+Ship - gemi
+Shoelace - Ayakkabı bağcığı
+Shout - Bağırmak
+Shrill – kulak tırmalayıcı
+Shy - Utangaç
+Sight - Görüş
+Significiant - anlamlı
+Silent - sessiz
+Sip - Yudum
+Skin - Deri
+Sky - Hava
+Slide - Kaydırmak, kaydırak, yol
+Slope - Eğim
+Smell - Koklamak
+Smoggy - sisli
+Soar - Uçmak, süzülmek
+Soft - yumuşak
+Soil - Toprak
+Somersault - Takla
+Sour - ekşi
+Spacious - ferah
+Spew - Kusmak
+Split - Bölmek
+Spoon - Kaşık
+Spot - leke
+Squeeze - sıkışmak
+Stable - istikrarlı
+Stack - yığın
+Staff - Kadro, personel
+Stair - merdiven
+Stale – tutar ölçek
+Stamina – dayanıklılık
+Stead of - Onun yerine
+Steady - Sabit durmak
+Steel - çelik
+Stomach - Mide
+Stone - Taş
+Stool – tabure dışkı
+Storm - fırtına
+Stove - Ocak
+Strange - Garip
+Stray - Başıboş, serseri
+Streak - Rüzgar gibi geçmek
+Stream - Akıntı
+Stream - Aktarım, dere, akıntı
+Stretch - Genişletmek
+Stretch - sarmak
+Stuff - Şey
+Stuff - Şey, madde, eşya
+Substance - Madde, cisim
+Substitution – yer değiştirmek
+Suddenly - birden
+Suffer – acı çekmek
+Sufficient - yeterli
+Suffix - Son ek
+Suggest - önermek
+Suitcase - valiz
+Supervise – demetlemek , yönetmek
+Suppose - Sanmak, varsaymak
+Suppose - Sanmak, varsaymak, tahmin
+Surface - Yüzey
+Surrend – teslim olmak
+Suspect - Şüphelenmek
+Suspend - Askıya almak
+Sustainable - sürdürülebilir
+Swallow - Yutmak
+Swap - Takas
+Syllabus - Ders programı
+Tail - Kuyruk
+Take over - Devralmak
+Tax - Vergi
+Tend - Eğilimli olmak
+Thick - kalın
+Thief - hırsız
+Thin - İnce
+Thoughtless - düşüncesiz
+Threaten – tehdit etmek
+Through - boyunca
+Throw - Fırlatmak, düşürmek
+Throw back - Gerileme, geriye...
+Throw up - Kusmak
+Thrustworthy - güvenilir
+Tight – dar
+Tiny - Küçücük
+to reach - Ulaşmak
+Tool - Alet
+Toward - -e doğru
+Toward - Karşı, yönünde, -e doğru
+Trace - İz, işaret, ipucu
+Trade - Ticaret
+Tradition - gelenek
+Trap - tuzak
+Trial - deneme
+Trick - Kandırmak
+Trip - Seyahat
+Trouble - Sorun
+Tumble - Takla atmak
+Unconscious - Bilinçsizlik
+Unfair – Adaletsiz
+Ungrateful - Nankör
+Union - Sendika, birleşme
+Up to date - Bugüne kadar
+Up to you - Sana kalmış, nasıl istersen
+Upside-down - Tepetaklak, ters dönmüş
+Upward - Yukarıya doğru
+Urban - Şehirsel, kente ait
+Urge - Dürtme, ısrarla yapmak
+Urgent - Acil
+Utility - faydalı
+Vacation - Tatil
+Vain – beyhude boşuna
+Vain - Gereksiz, boşuna
+Vase - Vazo
+Vein - Damar
+Vein - Damar
+Velvet - Kadife
+Verdict - Hüküm
+Versus - Karşı
+Vertical - Dikey
+Vicious - Kötü, ahlaksız
+Vicious circle - Kısır döngü
+Victim - Kurban
+Victim - Kurban, kazazede
+Villain - Kötü adam
+Vine - Bağ
+Vinegar - Sirke
+Violent - Kaba kuvvet kullanan
+Virtual - sanal
+Visa - Vize
+Visible - Görünen
+Vision - Görüş, imge
+Vital - Önemli, hayati
+Volume - Hacim
+Voluntary – Gönüllü
+Vomit - Kusmak
+Vote - Oy vermek
+Vowel - Sesli Harf
+Vowel - Sesli harf
+Voyage - Deniz yolculuğu
+Vulgar - Kaba, ilkel
+Vulnerable - Savunmasız
+Wallow - Yuvarlanmak, debelenmek
+Wealth - servet
+What ever - Ne olursa olsun
+Whether - Olup olmadığı, ister... ister...
+While - Sırasında
+Whole - bütün
+Whole - Bütün
+Wide - geniş
+Wide - Geniş
+Wind - Rüzgar
+Winding - Dolanbaçlı, bobin
+Wing - Kanat
+Wire – kablo tel
+Within - İçinde
+Work out - Egzersiz yapmak
+Worthy - saygıdeğer
+Wraith – hayalet sıska
+Wrap - Sarmak
+Wretched - Sefil, perişan
+Yard - Bahçe
+Zap - Vurmak, kanal değiş...
+Zazoo -
+Zeal - Gayret, heves
+Zealot - Fanatik, bağnaz
+Zealous - Gayretli
+Zinc - Çinko
+Zone – alan bölge
+Zucchini - Kabak
+ ---
+    const masterPool = [
+        // Eski kodundaki o uzun 1000 kelimelik listeyi köşeli parantezlerin arasına aynen yapıştır.
+        // Örn: { eng: "hello", tr: "merhaba" }, ...
+    ];
 </script>
 
 </body>
